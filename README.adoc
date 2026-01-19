@@ -1,0 +1,44 @@
+= Claude Cage
+
+A Docker container for running Claude Code with basic isolation.
+
+== What It Does
+
+Runs Claude Code in a container with:
+
+* *Folder isolation* - Only mounted workspace is accessible
+* *Network isolation* - Outbound traffic restricted to whitelisted domains (Anthropic API, GitHub, npm, Maven/Gradle)
+* *Non-root user* - Claude runs as unprivileged user inside container
+
+== Limitations
+
+This provides a *bare minimum* of isolation. Data exfiltration is still possible through allowed domains. This is not a security boundary, just a speed bump.
+
+== Usage
+
+[source,bash]
+----
+./claude-cage.sh /path/to/your/project
+----
+
+Or from current directory:
+
+[source,bash]
+----
+./claude-cage.sh
+----
+
+== Requirements
+
+* Docker
+* `~/.claude` directory with your Claude credentials
+
+== Whitelisted Domains
+
+See `init-firewall.sh` for the full list. Includes:
+
+* Anthropic API
+* GitHub
+* npm registry
+* Maven/Gradle repositories
+* JetBrains (Kotlin)

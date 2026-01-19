@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!init-firewall.sh
+!claude-cage.sh
+!README.adoc
+!.gitignore
+!.dockerignore
