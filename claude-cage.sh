@@ -1,19 +1,43 @@
 #!/bin/bash
 set -e
 
-if [ -z "$1" ]; then
-    echo "Usage: $(basename "$0") <folder>"
+REBUILD=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --rebuild)
+            REBUILD=true
+            shift
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            echo "Usage: $(basename "$0") [--rebuild] <folder>"
+            echo "  --rebuild: Force rebuild of the Docker image"
+            echo "  folder: Path to the project folder to run in"
+            exit 1
+            ;;
+        *)
+            FOLDER="$1"
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$FOLDER" ]; then
+    echo "Usage: $(basename "$0") [--rebuild] <folder>"
+    echo "  --rebuild: Force rebuild of the Docker image"
     echo "  folder: Path to the project folder to run in"
     exit 1
 fi
 
-WORKSPACE="$(cd "$1" && pwd)"
+WORKSPACE="$(cd "$FOLDER" && pwd)"
 IMAGE_NAME="claude-cage"
 CONTAINER_NAME="claude-cage-$(date +%Y%m%d-%H%M%S)"
 PROJECT_NAME=$(basename "$WORKSPACE")
 
-# Build if image doesn't exist
-if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
+# Build if image doesn't exist or --rebuild flag is set
+if [ "$REBUILD" = true ] || ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
     echo "Building $IMAGE_NAME..."
     docker build -t "$IMAGE_NAME" "$(dirname "$0")"
 fi
