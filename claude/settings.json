@@ -1,4 +1,12 @@
 {
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebFetch",
+        "hooks": [{"type": "command", "command": "/home/dev/.claude/hooks/fetch/fetch-hook.mjs"}]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(git *)",

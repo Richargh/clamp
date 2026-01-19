@@ -39,8 +39,9 @@ RUN mkdir -p /workspace /home/$USERNAME/.claude \
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-# Copy Claude Code settings (auto-approve common tools for sandboxed environment)
-COPY --chown=$USERNAME:$USERNAME claude-settings.json /home/$USERNAME/.claude/settings.json
+# Copy claude directory (settings, hooks, allowed-domains.txt)
+COPY --chown=$USERNAME:$USERNAME claude/ /home/$USERNAME/.claude/
+RUN chmod +x /home/$USERNAME/.claude/hooks/**/*.mjs
 
 # Copy firewall script
 COPY init-firewall.sh /usr/local/bin/

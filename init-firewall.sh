@@ -4,40 +4,17 @@
 
 set -e
 
-# Whitelisted domains
-ALLOWED_DOMAINS=(
-    # Anthropic API
-    "api.anthropic.com"
-    "sentry.io"
-    "statsig.anthropic.com"
+DOMAINS_FILE="/home/dev/.claude/hooks/allowed-domains.txt"
 
-    # GitHub
-    "github.com"
-    "api.github.com"
-    "raw.githubusercontent.com"
-    "objects.githubusercontent.com"
-    "codeload.github.com"
-
-    # npm registry
-    "registry.npmjs.org"
-    "npmjs.com"
-
-    # Maven/Gradle repositories
-    "repo.maven.apache.org"
-    "repo1.maven.org"
-    "plugins.gradle.org"
-    "services.gradle.org"
-    "downloads.gradle.org"
-    "repo.gradle.org"
-    "jcenter.bintray.com"
-    "dl.google.com"
-    "maven.google.com"
-
-    # JetBrains (Kotlin)
-    "cache-redirector.jetbrains.com"
-    "download.jetbrains.com"
-    "packages.jetbrains.team"
-)
+# Read domains from file (skip comments and empty lines)
+ALLOWED_DOMAINS=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # Trim whitespace and skip comments/empty lines
+    line="${line%%#*}"
+    line="${line// /}"
+    [[ -z "$line" ]] && continue
+    ALLOWED_DOMAINS+=("$line")
+done < "$DOMAINS_FILE"
 
 echo "Initializing firewall with domain whitelist..."
 
