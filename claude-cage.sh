@@ -55,7 +55,7 @@ docker run -it --rm \
     -v "${PROJECT_NAME}-node-modules:/workspace/node_modules" \
     -v "${PROJECT_NAME}-gradle-build:/workspace/build" \
     -v "${PROJECT_NAME}-gradle-cache:/home/dev/.gradle" \
-    -v "$HOME/.claude/.credentials.json:/home/dev/.claude/.credentials.json:ro" \
+    -v "$HOME/.claude/.credentials.json:/home/dev/.claude/.credentials.json:delegated" \
     -v "$HOME/.claude.json:/home/dev/.claude.json:delegated" \
     "$IMAGE_NAME" \
     bash -c 'sudo /usr/local/bin/init-firewall.sh && claude'
