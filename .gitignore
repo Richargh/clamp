@@ -1,6 +1,8 @@
 *
 !Dockerfile
 !init-firewall.sh
+!claude-settings.json
+
 !claude-cage.sh
 !README.adoc
 !.gitignore

@@ -32,11 +32,15 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
-# Create workspace
-RUN mkdir -p /workspace && chown $USERNAME:$USERNAME /workspace
+# Create workspace and claude config directory
+RUN mkdir -p /workspace /home/$USERNAME/.claude \
+    && chown $USERNAME:$USERNAME /workspace /home/$USERNAME/.claude
 
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+# Copy Claude Code settings (auto-approve common tools for sandboxed environment)
+COPY --chown=$USERNAME:$USERNAME claude-settings.json /home/$USERNAME/.claude/settings.json
 
 # Copy firewall script
 COPY init-firewall.sh /usr/local/bin/

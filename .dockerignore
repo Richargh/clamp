@@ -1,3 +1,4 @@
 *
 !Dockerfile
 !init-firewall.sh
+!claude-settings.json
