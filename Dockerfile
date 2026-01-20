@@ -34,22 +34,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs=24.13.0-1nodesource1 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+# Create non-root user, workspace, and install Claude Code
 ARG USERNAME=dev
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    # Allow passwordless sudo for firewall script only \
     && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/$USERNAME \
-    && chmod u=r,g=r,o= /etc/sudoers.d/$USERNAME
-
-# Create workspace and claude config directory
-RUN mkdir -p /workspace /home/$USERNAME/.claude \
-    && chown $USERNAME:$USERNAME /workspace /home/$USERNAME/.claude
-
-# Install Claude Code globally
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+    && chmod u=r,g=r,o= /etc/sudoers.d/$USERNAME \
+    # Create workspace and config directories \
+    && mkdir -p /workspace /home/$USERNAME/.claude \
+    && chown $USERNAME:$USERNAME /workspace /home/$USERNAME/.claude \
+    # Install Claude Code \
+    && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Disable auto-update since global npm packages require root permissions
 ENV CLAUDE_CODE_DISABLE_AUTO_UPDATE=1
