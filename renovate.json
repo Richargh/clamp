@@ -26,5 +26,11 @@
     ],
     "automerge": true
   },
-  "commitMessagePrefix": "^ E(deps)"
+  "commitMessagePrefix": "^ E(deps)",
+  "packageRules": [
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "dockerfile"
+    }
+  ]
 }
