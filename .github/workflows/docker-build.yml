@@ -13,6 +13,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: Lint shell scripts
+        run: shopt -s globstar && shellcheck **/*.sh
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
