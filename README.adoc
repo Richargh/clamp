@@ -21,21 +21,13 @@ This provides a *bare minimum* of isolation. Data exfiltration is still possible
 ./claude-cage.sh /path/to/your/project
 ----
 
-Or from current directory:
-
-[source,bash]
-----
-./claude-cage.sh
-----
-
 == Requirements
 
 * Docker
-* `~/.claude` directory with your Claude credentials
 
 == Whitelisted Domains
 
-See `init-firewall.sh` for the full list. Includes:
+The link:init-firewall.sh[] script sets the allowed domains. See link:claude/hooks/allowed-domains.txt[] for the full list. Includes:
 
 * Anthropic API
 * GitHub
