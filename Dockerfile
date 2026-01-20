@@ -2,6 +2,8 @@ FROM debian:12.13-slim
 
 ARG CLAUDE_CODE_VERSION=2.1.0
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install prerequisites, add external repositories, and tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl=7.88.1-10+deb12u14 \
