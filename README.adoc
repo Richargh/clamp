@@ -93,3 +93,50 @@ The link:init-firewall.sh[] script sets the allowed domains. See link:claude/hoo
 * npm registry
 * Maven/Gradle repositories
 * JetBrains (Kotlin)
+
+== Alternatives
+
+[cols="1,1,2"]
+|===
+|Project |Method |Notes
+
+|https://github.com/anthropic-experimental/sandbox-runtime[sandbox-runtime]
+|Native
+|Anthropic's official. Uses sandbox-exec/bubblewrap. No containers.
+
+|https://docs.docker.com/ai/sandboxes/[Docker Sandboxes]
+|Docker
+|Official Docker support. `docker sandbox run claude-code`
+
+|https://github.com/nikvdp/cco[cco]
+|Native/Docker
+|Zero-config wrapper. Native sandboxing with Docker fallback.
+
+|https://github.com/PACHAKUTlQ/ClaudeCage[ClaudeCage]
+|Bubblewrap
+|Single portable executable. No dependencies.
+
+|https://github.com/textcortex/claude-code-sandbox[textcortex/claude-code-sandbox]
+|Docker
+|Autonomous agent mode. Web terminal. Commit monitoring.
+
+|https://github.com/RchGrav/claudebox[claudebox]
+|Docker
+|15+ dev profiles. Per-project firewall rules.
+
+|https://github.com/adaptivekind/claude-sandbox[adaptivekind/claude-sandbox]
+|Docker
+|Simple setup. MCP server support.
+
+|https://github.com/Z7Lab/claude-code-sandbox[Z7Lab/claude-code-sandbox]
+|Docker
+|Resource limits. Real-time monitoring. Auto-updates.
+
+|https://developers.cloudflare.com/sandbox/tutorials/claude-code/[Cloudflare Sandbox]
+|Cloud
+|Run on Cloudflare's infrastructure.
+
+|https://firejail.wordpress.com/[Firejail]
+|Native
+|Linux security sandbox. Namespaces + seccomp.
+|===
