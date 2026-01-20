@@ -44,13 +44,10 @@
       "Bash(awk *)",
       "Bash(xargs *)",
       "Read(*)",
-      "Write(*)",
-      "Edit(*)",
       "Glob(*)",
       "Grep(*)",
       "WebFetch(domain:*)",
-      "WebSearch",
-      "Task(*)"
+      "WebSearch"
     ],
     "deny": []
   }
