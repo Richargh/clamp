@@ -49,6 +49,8 @@
       "WebFetch(domain:*)",
       "WebSearch"
     ],
-    "deny": []
+    "deny": [
+      "Bash(git push *)"
+    ]
   }
 }
