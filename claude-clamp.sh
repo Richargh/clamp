@@ -55,15 +55,15 @@ if [ -z "$FOLDER" ]; then
 fi
 
 WORKSPACE="$(cd "$FOLDER" && pwd)"
-IMAGE_NAME="claude-cage"
-CONTAINER_NAME="claude-cage-$(date +%Y%m%d-%H%M%S)"
+IMAGE_NAME="claude-clamp"
+CONTAINER_NAME="claude-clamp-$(date +%Y%m%d-%H%M%S)"
 PROJECT_NAME=$(basename "$WORKSPACE")
 
 # Determine claude config volume name based on flag
 if [ "$PER_PROJECT_AUTH" = true ]; then
-    CLAUDE_VOLUME="claude-cage-${PROJECT_NAME}"
+    CLAUDE_VOLUME="claude-clamp-${PROJECT_NAME}"
 else
-    CLAUDE_VOLUME="claude-cage"
+    CLAUDE_VOLUME="claude-clamp"
 fi
 
 # Build if image doesn't exist or --rebuild flag is set

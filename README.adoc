@@ -1,4 +1,4 @@
-= Claude Cage
+= Claude Clamp
 
 A Docker container for running Claude Code with basic isolation.
 
@@ -18,7 +18,7 @@ This provides a *bare minimum* of isolation. Data exfiltration is still possible
 
 [source,bash]
 ----
-./claude-cage.sh [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] <folder>
+./claude-clamp.sh [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] <folder>
 ----
 
 Options:
@@ -32,12 +32,12 @@ Options:
 
 [source,bash]
 ----
-./claude-cage.sh .
+./claude-clamp.sh .
 ----
 
 === Global Installation
 
-To call `claude-cage` from anywhere, create a symlink, preferable in your local bin:
+To call `claude-clamp` from anywhere, create a symlink, preferable in your local bin:
 
 ==== Create local bin (only if not exists)
 
@@ -70,14 +70,14 @@ Create symlink (in local bin):
 
 [source,bash]
 ----
-ln -s /path/to/repository/claude-cage.sh ~/.local/bin/claude-cage
+ln -s /path/to/repository/claude-clamp.sh ~/.local/bin/claude-clamp
 ----
 
 Then run from anywhere:
 
 [source,bash]
 ----
-claude-cage /path/to/project
+claude-clamp /path/to/project
 ----
 
 == Requirements
