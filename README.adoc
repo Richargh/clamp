@@ -96,47 +96,47 @@ The link:init-firewall.sh[] script sets the allowed domains. See link:claude/hoo
 
 == Alternatives
 
-[cols="1,1,2"]
+[cols="1,1,1,2"]
 |===
-|Project |Method |Notes
+|Project |Method |Network Isolation |Notes
 
-|https://github.com/anthropic-experimental/sandbox-runtime[sandbox-runtime]
-|Native
-|Anthropic's official. Uses sandbox-exec/bubblewrap. No containers.
+|https://github.com/anthropics/claude-code/tree/main/.devcontainer[Anthropic Devcontainer]
+|Docker
+|Firewall allowlist
+|Anthropic's reference setup. Default-deny policy with startup verification.
 
 |https://docs.docker.com/ai/sandboxes/[Docker Sandboxes]
 |Docker
+|Not documented
 |Official Docker support. `docker sandbox run claude-code`
 
 |https://github.com/nikvdp/cco[cco]
 |Native/Docker
+|None
 |Zero-config wrapper. Native sandboxing with Docker fallback.
 
-|https://github.com/PACHAKUTlQ/ClaudeCage[ClaudeCage]
-|Bubblewrap
-|Single portable executable. No dependencies.
-
-|https://github.com/textcortex/claude-code-sandbox[textcortex/claude-code-sandbox]
+|https://github.com/RchGrav/claudebox[rchgrav/claudebox]
 |Docker
-|Autonomous agent mode. Web terminal. Commit monitoring.
-
-|https://github.com/RchGrav/claudebox[claudebox]
-|Docker
+|Per-project allowlist
 |15+ dev profiles. Per-project firewall rules.
+
+|https://github.com/PACHAKUTlQ/ClaudeCage[PACHAKUTlQ/ClaudeCage]
+|Bubblewrap
+|Not implemented
+|Single portable executable. No dependencies.
 
 |https://github.com/adaptivekind/claude-sandbox[adaptivekind/claude-sandbox]
 |Docker
+|None (`--network=host`)
 |Simple setup. MCP server support.
 
 |https://github.com/Z7Lab/claude-code-sandbox[Z7Lab/claude-code-sandbox]
 |Docker
+|None by default
 |Resource limits. Real-time monitoring. Auto-updates.
-
-|https://developers.cloudflare.com/sandbox/tutorials/claude-code/[Cloudflare Sandbox]
-|Cloud
-|Run on Cloudflare's infrastructure.
 
 |https://firejail.wordpress.com/[Firejail]
 |Native
+|`--net=none` or namespace
 |Linux security sandbox. Namespaces + seccomp.
 |===
