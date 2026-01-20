@@ -4,6 +4,9 @@
 !claude/
 !claude/**
 
+!.github
+!.github/**
+
 !claude-clamp.sh
 !README.adoc
 !.gitignore
