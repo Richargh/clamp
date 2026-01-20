@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Resolve the real path of this script (handles symlinks)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
 usage() {
     echo "Usage: $(basename "$0") [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] <folder>"
     echo "  -h, --help: Show this help message"
@@ -66,7 +69,7 @@ fi
 # Build if image doesn't exist or --rebuild flag is set
 if [ "$REBUILD" = true ] || ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
     echo "Building $IMAGE_NAME..."
-    docker build $NO_CACHE -t "$IMAGE_NAME" "$(dirname "$0")"
+    docker build $NO_CACHE -t "$IMAGE_NAME" "$SCRIPT_DIR"
 fi
 
 # Run with:

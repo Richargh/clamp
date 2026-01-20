@@ -35,6 +35,51 @@ Options:
 ./claude-cage.sh .
 ----
 
+=== Global Installation
+
+To call `claude-cage` from anywhere, create a symlink, preferable in your local bin:
+
+==== Create local bin (only if not exists)
+
+Create the folder:
+
+[source,bash]
+----
+mkdir -p ~/.local/bin
+----
+
+Ensure `~/.local/bin` is in your PATH.
+
+For bash/zsh (add to `~/.bashrc` or `~/.zshrc`):
+
+[source,bash]
+----
+export PATH="$HOME/.local/bin:$PATH"
+----
+
+For fish (run once):
+
+[source,fish]
+----
+fish_add_path ~/.local/bin
+----
+
+==== Create symlink
+
+Create symlink (in local bin):
+
+[source,bash]
+----
+ln -s /path/to/repository/claude-cage.sh ~/.local/bin/claude-cage
+----
+
+Then run from anywhere:
+
+[source,bash]
+----
+claude-cage /path/to/project
+----
+
 == Requirements
 
 * Docker
