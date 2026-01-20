@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+usage() {
+    echo "Usage: $(basename "$0") [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] <folder>"
+    echo "  -h, --help: Show this help message"
+    echo "  --rebuild: Force rebuild of the Docker image"
+    echo "  --no-cache: Rebuild without Docker layer cache"
+    echo "  --per-project-auth: Use separate credentials for this project"
+    echo "  folder: Path to the project folder to run in"
+}
+
 REBUILD=false
 NO_CACHE=""
 PER_PROJECT_AUTH=false
@@ -21,13 +30,13 @@ while [[ $# -gt 0 ]]; do
             PER_PROJECT_AUTH=true
             shift
             ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
         -*)
             echo "Unknown option: $1"
-            echo "Usage: $(basename "$0") [--rebuild] [--no-cache] [--per-project-auth] <folder>"
-            echo "  --rebuild: Force rebuild of the Docker image"
-            echo "  --no-cache: Rebuild without Docker layer cache"
-            echo "  --per-project-auth: Use separate credentials for this project"
-            echo "  folder: Path to the project folder to run in"
+            usage
             exit 1
             ;;
         *)
@@ -38,11 +47,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$FOLDER" ]; then
-    echo "Usage: $(basename "$0") [--rebuild] [--no-cache] [--per-project-auth] <folder>"
-    echo "  --rebuild: Force rebuild of the Docker image"
-    echo "  --no-cache: Rebuild without Docker layer cache"
-    echo "  --per-project-auth: Use separate credentials for this project"
-    echo "  folder: Path to the project folder to run in"
+    usage
     exit 1
 fi
 

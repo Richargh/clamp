@@ -18,7 +18,21 @@ This provides a *bare minimum* of isolation. Data exfiltration is still possible
 
 [source,bash]
 ----
-./claude-cage.sh /path/to/your/project
+./claude-cage.sh [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] <folder>
+----
+
+Options:
+
+* `-h, --help` - Show help message
+* `--rebuild` - Force rebuild of the Docker image
+* `--no-cache` - Rebuild without Docker layer cache
+* `--per-project-auth` - Use separate credentials for this project
+
+*Example* to start in the current folder:
+
+[source,bash]
+----
+./claude-cage.sh .
 ----
 
 == Requirements
