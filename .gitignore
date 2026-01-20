@@ -11,5 +11,6 @@
 !README.adoc
 !.gitignore
 !.dockerignore
+!renovate.json
 !UNLICENSE
 
