@@ -51,7 +51,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Disable auto-update since global npm packages require root permissions
-ENV CLAUDE_CODE_DISABLE_AUTO_UPDATE=1
+ENV DISABLE_AUTOUPDATER=1
 
 # Copy claude directory (settings, hooks, allowed-domains.txt)
 COPY --chown=$USERNAME:$USERNAME claude/ /home/$USERNAME/.claude/
