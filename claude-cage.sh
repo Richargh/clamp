@@ -2,6 +2,7 @@
 set -e
 
 REBUILD=false
+NO_CACHE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -10,10 +11,16 @@ while [[ $# -gt 0 ]]; do
             REBUILD=true
             shift
             ;;
+        --no-cache)
+            REBUILD=true
+            NO_CACHE="--no-cache"
+            shift
+            ;;
         -*)
             echo "Unknown option: $1"
-            echo "Usage: $(basename "$0") [--rebuild] <folder>"
+            echo "Usage: $(basename "$0") [--rebuild] [--no-cache] <folder>"
             echo "  --rebuild: Force rebuild of the Docker image"
+            echo "  --no-cache: Rebuild without Docker layer cache"
             echo "  folder: Path to the project folder to run in"
             exit 1
             ;;
@@ -25,8 +32,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$FOLDER" ]; then
-    echo "Usage: $(basename "$0") [--rebuild] <folder>"
+    echo "Usage: $(basename "$0") [--rebuild] [--no-cache] <folder>"
     echo "  --rebuild: Force rebuild of the Docker image"
+    echo "  --no-cache: Rebuild without Docker layer cache"
     echo "  folder: Path to the project folder to run in"
     exit 1
 fi
@@ -39,7 +47,7 @@ PROJECT_NAME=$(basename "$WORKSPACE")
 # Build if image doesn't exist or --rebuild flag is set
 if [ "$REBUILD" = true ] || ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
     echo "Building $IMAGE_NAME..."
-    docker build -t "$IMAGE_NAME" "$(dirname "$0")"
+    docker build $NO_CACHE -t "$IMAGE_NAME" "$(dirname "$0")"
 fi
 
 # Run with:
