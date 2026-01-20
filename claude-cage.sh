@@ -3,6 +3,7 @@ set -e
 
 REBUILD=false
 NO_CACHE=""
+PER_PROJECT_AUTH=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -16,11 +17,16 @@ while [[ $# -gt 0 ]]; do
             NO_CACHE="--no-cache"
             shift
             ;;
+        --per-project-auth)
+            PER_PROJECT_AUTH=true
+            shift
+            ;;
         -*)
             echo "Unknown option: $1"
-            echo "Usage: $(basename "$0") [--rebuild] [--no-cache] <folder>"
+            echo "Usage: $(basename "$0") [--rebuild] [--no-cache] [--per-project-auth] <folder>"
             echo "  --rebuild: Force rebuild of the Docker image"
             echo "  --no-cache: Rebuild without Docker layer cache"
+            echo "  --per-project-auth: Use separate credentials for this project"
             echo "  folder: Path to the project folder to run in"
             exit 1
             ;;
@@ -32,9 +38,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$FOLDER" ]; then
-    echo "Usage: $(basename "$0") [--rebuild] [--no-cache] <folder>"
+    echo "Usage: $(basename "$0") [--rebuild] [--no-cache] [--per-project-auth] <folder>"
     echo "  --rebuild: Force rebuild of the Docker image"
     echo "  --no-cache: Rebuild without Docker layer cache"
+    echo "  --per-project-auth: Use separate credentials for this project"
     echo "  folder: Path to the project folder to run in"
     exit 1
 fi
@@ -43,6 +50,13 @@ WORKSPACE="$(cd "$FOLDER" && pwd)"
 IMAGE_NAME="claude-cage"
 CONTAINER_NAME="claude-cage-$(date +%Y%m%d-%H%M%S)"
 PROJECT_NAME=$(basename "$WORKSPACE")
+
+# Determine claude config volume name based on flag
+if [ "$PER_PROJECT_AUTH" = true ]; then
+    CLAUDE_VOLUME="claude-cage-${PROJECT_NAME}"
+else
+    CLAUDE_VOLUME="claude-cage"
+fi
 
 # Build if image doesn't exist or --rebuild flag is set
 if [ "$REBUILD" = true ] || ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
@@ -63,7 +77,7 @@ docker run -it --rm \
     -v "${PROJECT_NAME}-node-modules:/workspace/node_modules" \
     -v "${PROJECT_NAME}-gradle-build:/workspace/build" \
     -v "${PROJECT_NAME}-gradle-cache:/home/dev/.gradle" \
-    -v "$HOME/.claude/.credentials.json:/home/dev/.claude/.credentials.json:delegated" \
-    -v "$HOME/.claude.json:/home/dev/.claude.json:delegated" \
+    -v "${CLAUDE_VOLUME}:/home/dev/.claude" \
+    -e "CLAUDE_CONFIG_DIR=/home/dev/.claude" \
     "$IMAGE_NAME" \
     bash -c 'sudo /usr/local/bin/init-firewall.sh && claude'
