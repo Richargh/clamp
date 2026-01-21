@@ -67,7 +67,6 @@ COPY --chown=$USERNAME:$USERNAME claude-clamp-workflows /opt/claude-workflows
 
 # Copy startup scripts
 COPY startup-scripts/ /usr/local/bin/
-RUN chmod +x /usr/local/bin/container-startup.sh /usr/local/bin/init-firewall.sh
 
 WORKDIR /workspace
 USER $USERNAME
