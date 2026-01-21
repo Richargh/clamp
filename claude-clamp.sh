@@ -11,6 +11,7 @@ usage() {
     echo "  --no-cache: Rebuild without Docker layer cache"
     echo "  --per-project-auth: Use separate credentials for this project"
     echo "  --no-firewall: Disable the network firewall (allow all outbound traffic). Useful for constrained research."
+    echo "  --no-workflows: Skip copying workflows from the image"
     echo "  --shell: Run startup then drop to shell instead of launching Claude (for debugging)"
     echo "  folder: Path to the project folder to run in"
 }
@@ -19,6 +20,7 @@ REBUILD=false
 NO_CACHE=""
 PER_PROJECT_AUTH=false
 NO_FIREWALL=false
+NO_WORKFLOWS=false
 SHELL_MODE=false
 
 # Parse arguments
@@ -39,6 +41,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-firewall)
             NO_FIREWALL=true
+            shift
+            ;;
+        --no-workflows)
+            NO_WORKFLOWS=true
             shift
             ;;
         --shell)
@@ -84,13 +90,16 @@ if [ "$REBUILD" = true ] || ! docker image inspect "$IMAGE_NAME" &>/dev/null; th
     docker build $NO_CACHE -t "$IMAGE_NAME" "$SCRIPT_DIR"
 fi
 
-# Set firewall options based on --no-firewall flag
+# Set startup options based on flags
+STARTUP_OPTS=""
 if [ "$NO_FIREWALL" = true ]; then
-    STARTUP_OPTS="--no-firewall"
+    STARTUP_OPTS="$STARTUP_OPTS --no-firewall"
     CAP_OPTS=""
 else
-    STARTUP_OPTS=""
     CAP_OPTS="--cap-add=NET_ADMIN"
+fi
+if [ "$NO_WORKFLOWS" = true ]; then
+    STARTUP_OPTS="$STARTUP_OPTS --no-workflows"
 fi
 
 # Set final command based on --shell flag

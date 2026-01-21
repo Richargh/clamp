@@ -3,5 +3,7 @@
 !init-firewall.sh
 !claude-clamp-core/
 !claude-clamp-core/**
+!claude-clamp-workflows/
+!claude-clamp-workflows/**
 !startup-scripts/
 !startup-scripts/**
