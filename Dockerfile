@@ -28,6 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git=1:2.39.5-0+deb12u3 \
     jq=1.6-2.1+deb12u1 \
     sudo=1.9.13p3-1+deb12u3 \
+    # Linting tools \
+    shellcheck=0.9.0-1 \
+    && curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint \
+    && chmod +x /usr/local/bin/hadolint \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Java and Node.js (from external repos)
