@@ -47,25 +47,25 @@ ARG USER_GID=$USER_UID
 
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    # Allow passwordless sudo for firewall script only \
-    && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/$USERNAME \
+    # Allow passwordless sudo for changing firewall in startup script \
+    && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/container-startup.sh" > /etc/sudoers.d/$USERNAME \
     && chmod u=r,g=r,o= /etc/sudoers.d/$USERNAME \
-    # Create workspace and config directories \
-    && mkdir -p /workspace /home/$USERNAME/.claude \
-    && chown $USERNAME:$USERNAME /workspace /home/$USERNAME/.claude \
+    # Create workspace directory \
+    && mkdir -p /workspace \
+    && chown $USERNAME:$USERNAME /workspace \
     # Install Claude Code \
     && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Disable auto-update since global npm packages require root permissions
 ENV DISABLE_AUTOUPDATER=1
 
-# Copy claude directory (settings, hooks, allowed-domains.txt)
-COPY --chown=$USERNAME:$USERNAME claude/ /home/$USERNAME/.claude/
-RUN chmod +x /home/$USERNAME/.claude/hooks/**/*.mjs
+# Copy claude config to template location (fresh copy on each container start)
+COPY --chown=$USERNAME:$USERNAME claude /opt/claude-config
+RUN chmod +x /opt/claude-config/hooks/**/*.mjs
 
-# Copy firewall script
-COPY init-firewall.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/init-firewall.sh
+# Copy startup scripts
+COPY startup-scripts/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/container-startup.sh /usr/local/bin/init-firewall.sh
 
 WORKDIR /workspace
 USER $USERNAME

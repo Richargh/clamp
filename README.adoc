@@ -18,7 +18,7 @@ This provides a *bare minimum* of isolation. Data exfiltration is still possible
 
 [source,bash]
 ----
-./claude-clamp.sh [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] <folder>
+./claude-clamp.sh [options] <folder>
 ----
 
 Options:
@@ -27,6 +27,8 @@ Options:
 * `--rebuild` - Force rebuild of the Docker image
 * `--no-cache` - Rebuild without Docker layer cache
 * `--per-project-auth` - Use separate credentials for this project
+* `--no-firewall` - Disable the network firewall (allow all outbound traffic)
+* `--shell` - Drop to shell instead of launching Claude (for debugging)
 
 *Example* to start in the current folder:
 

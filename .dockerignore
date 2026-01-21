@@ -3,3 +3,5 @@
 !init-firewall.sh
 !claude/
 !claude/**
+!startup-scripts/
+!startup-scripts/**

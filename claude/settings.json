@@ -3,7 +3,7 @@
     "PreToolUse": [
       {
         "matcher": "WebFetch",
-        "hooks": [{"type": "command", "command": "/home/dev/.claude/hooks/fetch/fetch-hook.mjs"}]
+        "hooks": [{"type": "command", "command": "/home/dev/.claude/hooks/fetch/firewall-preflight.mjs"}]
       }
     ]
   },
