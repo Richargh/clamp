@@ -61,7 +61,7 @@ ENV DISABLE_AUTOUPDATER=1
 
 # Copy claude config to template location (fresh copy on each container start)
 COPY --chown=$USERNAME:$USERNAME claude /opt/claude-config
-RUN chmod +x /opt/claude-config/hooks/**/*.mjs
+RUN shopt -s globstar && chmod +x /opt/claude-config/*.mjs /opt/claude-config/**/*.mjs
 
 # Copy startup scripts
 COPY startup-scripts/ /usr/local/bin/
