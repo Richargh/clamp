@@ -60,13 +60,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # Disable auto-update since global npm packages require root permissions
 ENV DISABLE_AUTOUPDATER=1
 
+# Copy startup scripts
+COPY startup-scripts/ /usr/local/bin/
+
 # Copy claude config to template location (fresh copy on each container start)
 COPY --chown=$USERNAME:$USERNAME claude-clamp-core /opt/claude-config
 # Copy claude workflows to template location
 COPY --chown=$USERNAME:$USERNAME claude-clamp-workflows /opt/claude-workflows
-
-# Copy startup scripts
-COPY startup-scripts/ /usr/local/bin/
 
 WORKDIR /workspace
 USER $USERNAME
