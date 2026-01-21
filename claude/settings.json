@@ -13,6 +13,8 @@
   },
   "permissions": {
     "allow": [
+      "WebFetch(domain:*)",
+      "WebSearch",
       "Bash(git *)",
       "Bash(npm *)",
       "Bash(npx *)",
@@ -49,9 +51,7 @@
       "Bash(xargs *)",
       "Read(*)",
       "Glob(*)",
-      "Grep(*)",
-      "WebFetch(domain:*)",
-      "WebSearch"
+      "Grep(*)"
     ],
     "deny": [
       "Bash(git push *)"

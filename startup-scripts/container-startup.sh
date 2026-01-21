@@ -24,8 +24,10 @@ for arg in "$@"; do
 done
 
 if [ "$NO_FIREWALL" = true ]; then
-    # Swap to no-firewall hook
+    # Swap to no-firewall hook and remove web permissions (no firewall = no restrictions)
     sed -i 's|/firewall-preflight\.mjs|/no-firewall-preflight.mjs|g' /home/dev/.claude/settings.json
+    sed -i '/"WebFetch(domain:\*)",/d' /home/dev/.claude/settings.json
+    sed -i '/"WebSearch"/d' /home/dev/.claude/settings.json
 else
     # Initialize iptables firewall
     /usr/local/bin/init-firewall.sh
