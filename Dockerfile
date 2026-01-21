@@ -60,7 +60,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 ENV DISABLE_AUTOUPDATER=1
 
 # Copy claude config to template location (fresh copy on each container start)
-COPY --chown=$USERNAME:$USERNAME claude /opt/claude-config
+COPY --chown=$USERNAME:$USERNAME claude-clamp-core /opt/claude-config
 RUN shopt -s globstar && chmod +x /opt/claude-config/*.mjs /opt/claude-config/**/*.mjs
 
 # Copy startup scripts
