@@ -12,6 +12,7 @@ usage() {
     echo "  --per-project-auth: Use separate credentials for this project"
     echo "  --no-firewall: Disable the network firewall (allow all outbound traffic). Useful for constrained research."
     echo "  --no-workflows: Skip copying workflows from the image"
+    echo "  --danger: Run Claude with --dangerously-skip-permissions (no confirmations)"
     echo "  --shell: Run startup then drop to shell instead of launching Claude (for debugging)"
     echo "  folder: Path to the project folder to run in"
 }
@@ -21,6 +22,7 @@ NO_CACHE=""
 PER_PROJECT_AUTH=false
 NO_FIREWALL=false
 NO_WORKFLOWS=false
+DANGER_MODE=false
 SHELL_MODE=false
 
 # Parse arguments
@@ -45,6 +47,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-workflows)
             NO_WORKFLOWS=true
+            shift
+            ;;
+        --danger)
+            DANGER_MODE=true
             shift
             ;;
         --shell)
@@ -102,8 +108,9 @@ if [ "$NO_WORKFLOWS" = true ]; then
     STARTUP_OPTS="$STARTUP_OPTS --no-workflows"
 fi
 
-# Set final command based on --shell flag
+# Set final command based on --shell and --danger flags
 FINAL_CMD="claude"
+[ "$DANGER_MODE" = true ] && FINAL_CMD="claude --dangerously-skip-permissions"
 [ "$SHELL_MODE" = true ] && FINAL_CMD="bash"
 
 # Run with:
