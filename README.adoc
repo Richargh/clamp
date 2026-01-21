@@ -10,6 +10,8 @@ Runs Claude Code in a container with:
 * *Network isolation* - Outbound traffic restricted to whitelisted domains (Anthropic API, GitHub, npm, Maven/Gradle)
 * *Non-root user* - Claude runs as unprivileged user inside container
 
+Check the link:Customization.adoc[] to see what you can customize.
+
 == Limitations
 
 This provides a *bare minimum* of isolation. Data exfiltration is still possible through allowed domains. This is not a security boundary, just a speed bump.

@@ -1,0 +1,350 @@
+= Customizing Claude Clamp
+
+This guide explains how to customize Claude Clamp for your own purposes.
+
+== Overview
+
+Claude Clamp has three main customization points:
+
+1. *Allowed Domains* - Network access whitelist
+2. *Hooks* - Scripts that intercept Claude Code tool calls
+3. *Workflows* - Project instructions and slash commands
+
+== Editing Allowed Domains
+
+The allowed domains whitelist controls both:
+
+* Network firewall (iptables rules)
+* WebFetch hook validation
+
+=== Domain File Location
+
+Edit `claude-clamp-core/hooks/allowed-domains.txt`:
+
+[source,text]
+----
+# Allowed domains for Claude Code container
+# Used by both the firewall (init-firewall.sh) and fetch hook
+
+# Anthropic API (required)
+api.anthropic.com
+sentry.io
+statsig.anthropic.com
+
+# Your custom domains
+your-api.example.com
+docs.your-company.com
+----
+
+=== Format
+
+* One domain per line
+* Lines starting with `#` are comments
+* Subdomains are automatically allowed (e.g., `example.com` allows `api.example.com`)
+* Domains are case-insensitive
+
+=== Examples
+
+Add PyPI for Python projects:
+
+[source,text]
+----
+# PyPI
+pypi.org
+files.pythonhosted.org
+----
+
+Add Docker Hub:
+
+[source,text]
+----
+# Docker
+registry.hub.docker.com
+auth.docker.io
+registry-1.docker.io
+----
+
+After editing, rebuild the container:
+
+[source,bash]
+----
+./claude-clamp.sh --rebuild <folder>
+----
+
+== Adding Custom Hooks
+
+Hooks are scripts that run before or after Claude Code tool calls. They can allow, block, or modify tool behavior.
+
+=== Hook Types
+
+* *PreToolUse* - Runs before a tool executes (can block)
+* *PostToolUse* - Runs after a tool executes
+
+=== Creating a Hook
+
+Hooks are Node.js scripts that:
+
+1. Read JSON from stdin
+2. Process the input
+3. Output a JSON response (for PreToolUse)
+4. Exit with code 0
+
+==== Example: Block Downloads to /tmp
+
+Create `claude-clamp-core/hooks/block-tmp-writes.mjs`:
+
+[source,javascript]
+----
+#!/usr/bin/env node
+
+async function main() {
+    let input = '';
+    for await (const chunk of process.stdin) {
+        input += chunk;
+    }
+
+    const hookData = JSON.parse(input);
+    const filePath = hookData.tool_input?.file_path || '';
+
+    if (filePath.startsWith('/tmp/')) {
+        console.log(JSON.stringify({
+            decision: 'block',
+            reason: 'Writing to /tmp is not allowed'
+        }));
+    }
+    // No output = allow
+}
+
+main();
+----
+
+Make it executable:
+
+[source,bash]
+----
+chmod u+x claude-clamp-core/hooks/block-tmp-writes.mjs
+----
+
+==== Register the Hook
+
+Edit `claude-clamp-core/settings.json`:
+
+[source,json]
+----
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {"type": "command", "command": "/home/dev/.claude/hooks/block-tmp-writes.mjs"}
+        ]
+      }
+    ]
+  }
+}
+----
+
+=== Hook Input Format
+
+Hooks receive JSON via stdin:
+
+[source,json]
+----
+{
+  "tool_name": "WebFetch",
+  "tool_input": {
+    "url": "https://example.com",
+    "prompt": "Extract the main content"
+  },
+  "session_id": "abc123"
+}
+----
+
+=== Hook Output Format
+
+For PreToolUse hooks, output JSON to allow or block:
+
+[source,json]
+----
+{"decision": "block", "reason": "Not allowed"}
+----
+
+Or output nothing to allow the request.
+
+=== Available Matchers
+
+Matchers determine which tools trigger a hook:
+
+* `WebFetch` - URL fetching
+* `WebSearch` - Web searches
+* `Bash` - Shell commands
+* `Read` - File reads
+* `Write` - File writes
+* `Edit` - File edits
+* `Glob` - File pattern matching
+* `Grep` - Content searching
+
+=== Multiple Hooks
+
+You can chain multiple hooks for the same tool:
+
+[source,json]
+----
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {"type": "command", "command": "/home/dev/.claude/hooks/fetch/firewall-preflight.mjs"},
+          {"type": "command", "command": "/home/dev/.claude/hooks/fetch/block-base64-urls.mjs"},
+          {"type": "command", "command": "/home/dev/.claude/hooks/my-custom-hook.mjs"}
+        ]
+      }
+    ]
+  }
+}
+----
+
+Hooks run in order. If any hook blocks, the tool call is rejected.
+
+== Adding Custom Workflows (Skills/Slash Commands)
+
+Workflows customize Claude's behavior per-project. Files in `claude-clamp-workflows/` are copied to `/home/dev/.claude/` at container startup.
+
+=== Project Instructions (CLAUDE.md)
+
+The `CLAUDE.md` file contains instructions Claude follows:
+
+Edit `claude-clamp-workflows/CLAUDE.md`:
+
+[source,markdown]
+----
+# Project Guidelines
+
+- Use TypeScript for all new code
+- Follow the existing code style
+- Write tests for new features
+- Never commit directly to main
+----
+
+=== Custom Slash Commands
+
+Create slash commands by adding files to `claude-clamp-workflows/commands/`:
+
+==== Example: /deploy Command
+
+Create `claude-clamp-workflows/commands/deploy.md`:
+
+[source,markdown]
+----
+# Deploy Command
+
+Run the deployment process for this project.
+
+## Steps
+
+1. Run tests: `npm test`
+2. Build: `npm run build`
+3. Show the deploy command but DO NOT execute it
+----
+
+Users can then run `/deploy` in Claude Code.
+
+==== Example: /review Command
+
+Create `claude-clamp-workflows/commands/review.md`:
+
+[source,markdown]
+----
+# Code Review Command
+
+Review the current changes for:
+
+- Security vulnerabilities
+- Performance issues
+- Code style violations
+- Missing tests
+
+Provide actionable feedback with specific line references.
+----
+
+=== Directory Structure
+
+[source]
+----
+claude-clamp-workflows/
+├── CLAUDE.md           # Main project instructions
+└── commands/           # Slash commands
+    ├── deploy.md
+    ├── review.md
+    └── test.md
+----
+
+== Modifying Permissions
+
+Permissions control which bash commands Claude can run without asking.
+
+Edit the `permissions` section in `claude-clamp-core/settings.json`:
+
+[source,json]
+----
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(python *)",
+      "Bash(pytest *)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)"
+    ],
+    "deny": [
+      "Bash(git push *)",
+      "Bash(rm -rf /*)"
+    ]
+  }
+}
+----
+
+=== Permission Patterns
+
+* `*` - Wildcard matching any arguments
+* Exact matches take precedence over wildcards
+* `deny` rules override `allow` rules
+
+== Customizing the Status Line
+
+The status line shows in Claude Code's UI. Edit `claude-clamp-core/statusline.mjs`:
+
+[source,javascript]
+----
+#!/usr/bin/env node
+
+// Output your custom status
+console.log('🔒 Secure Container');
+----
+
+== Applying Changes
+
+After making customizations, rebuild the container:
+
+[source,bash]
+----
+./claude-clamp.sh --rebuild <folder>
+----
+
+For a completely fresh build:
+
+[source,bash]
+----
+./claude-clamp.sh --rebuild --no-cache <folder>
+----
+
+== Further Reading
+
+* https://code.claude.com/docs/en/hooks[Claude Code Hooks Documentation]
+* https://code.claude.com/docs/en/skills[Claude Code Skills Documentation]
+* https://code.claude.com/docs/en/memory[Claude Code Memory Documentation]
