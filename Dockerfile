@@ -41,7 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs=24.13.0-1nodesource1 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user, workspace, and install Claude Code
+# Create non-root user and workspace
 ARG USERNAME=dev
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
@@ -51,11 +51,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
     # Allow passwordless sudo for changing firewall in startup script \
     && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/container-startup.sh" > /etc/sudoers.d/$USERNAME \
     && chmod u=r,g=r,o= /etc/sudoers.d/$USERNAME \
-    # Create workspace directory \
-    && mkdir -p /workspace \
-    && chown $USERNAME:$USERNAME /workspace \
-    # Install Claude Code \
-    && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+    # Create workspace and volume mount directories with correct ownership \
+    # (Docker preserves ownership when initializing named volumes from existing dirs) \
+    && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
+    && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME/.gradle
+
+# Install Claude Code
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Disable auto-update since global npm packages require root permissions
 ENV DISABLE_AUTOUPDATER=1
