@@ -12,6 +12,7 @@
 !.github/**
 
 !claude-clamp.sh
+!claude-clamp-cleanup.sh
 !Customization.adoc
 !README.adoc
 !.gitignore
