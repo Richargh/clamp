@@ -88,7 +88,20 @@ claude-clamp /path/to/project
 
 * Docker
 
-== Whitelisted Domains
+== Workflows
+
+The workflows here are my versions of popular open source workflows including:
+
+* link:https://tidyfirst.substack.com/p/augmented-coding-beyond-the-vibes[Kent Beck]
+* link:https://github.com/LearnWithLlew/AgenticAi.Java.StarterProject/blob/master/.windsurf/processes/TDD.refactoring.process.md[Llewellyn Falco]
+* link:https://github.com/citypaul/.dotfiles/blob/main/claude/.claude/CLAUDE.md[Paul Hammond]
+* link:https://github.com/lexler/skill-factory[Lada Kessler]
+* link:https://github.com/NTCoding/claude-skillz/blob/main/CLAUDE.md[Nick Tune]
+* link:https://github.com/humanlayer/advanced-context-engineering-for-coding-agents/blob/main/ace-fca.md[Humanlayer]
+
+== Network Isolation
+
+=== Whitelisted Domains
 
 The link:init-firewall.sh[] script sets the allowed domains. See link:claude/hooks/allowed-domains.txt[] for the full list. Includes:
 
@@ -98,7 +111,7 @@ The link:init-firewall.sh[] script sets the allowed domains. See link:claude/hoo
 * Maven/Gradle repositories
 * JetBrains (Kotlin)
 
-== Alternatives
+=== Alternatives
 
 [cols="1,1,1,2"]
 |===
