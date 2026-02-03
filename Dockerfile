@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq=1.6-2.1+deb12u1 \
     sudo=1.9.13p3-1+deb12u3 \
     procps=2:4.0.2-3 \
+    zip \
+    unzip \
     # Linting tools \
     shellcheck=0.9.0-1 \
     # Chromium dependencies \
