@@ -8,6 +8,9 @@
  * 2. /home/dev/.claude/hooks/allowed-domains.txt (one domain per line)
  *
  * The hook receives tool input via stdin and blocks requests to non-allowed domains.
+ *
+ * @typedef {import('../types.js').WebFetchHookData} WebFetchHookData
+ * @typedef {import('../types.js').BlockResponse} BlockResponse
  */
 
 import {readFileSync} from 'fs';
@@ -49,7 +52,7 @@ function getAllowedDomains() {
 
 /**
  * @param {string} input
- * @returns {HookData}
+ * @returns {WebFetchHookData}
  * @throws Will throw an error if input cannot be parsed.
  */
 function parseHookInput(input) {
@@ -92,8 +95,13 @@ function blockRequest(reason) {
     process.exit(0);
 }
 
+/**
+ * @param {string} reason
+ */
 function printBlock(reason) {
-    console.log(JSON.stringify({decision: 'block', reason}));
+    /** @type {BlockResponse} */
+    const response = {decision: 'block', reason};
+    console.log(JSON.stringify(response));
 }
 
 /**
@@ -110,21 +118,3 @@ function loadDomainsFromFile(filePath) {
 }
 
 main();
-
-// --- Type Definitions ---
-
-/**
- * @typedef {Object} ToolInput
- * @property {string} [url] - The URL being fetched
- */
-
-/**
- * @typedef {Object} HookData
- * @property {ToolInput} [tool_input] - The tool input containing the URL
- */
-
-/**
- * @typedef {Object} BlockResponse
- * @property {'block'} decision - The decision to block the request
- * @property {string} reason - The reason for blocking
- */

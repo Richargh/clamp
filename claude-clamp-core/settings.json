@@ -7,7 +7,18 @@
     "PreToolUse": [
       {
         "matcher": "WebFetch",
-        "hooks": [{"type": "command", "command": "/home/dev/.claude/hooks/fetch/firewall-preflight.mjs"}]
+        "hooks": [
+          {"type": "command", "command": "/home/dev/.claude/hooks/fetch/firewall-preflight.mjs"},
+          {"type": "command", "command": "/home/dev/.claude/hooks/fetch/block-base64-urls.mjs"}
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": "/home/dev/.claude/hooks/bash/dangerous-cmd-blocker.mjs"}]
+      },
+      {
+        "matcher": "Read|Edit|Write",
+        "hooks": [{"type": "command", "command": "/home/dev/.claude/hooks/file/sensitive-protector.mjs"}]
       }
     ]
   },
@@ -36,7 +47,7 @@
       "Bash(rm *)",
       "Bash(cp *)",
       "Bash(mv *)",
-      "Bash(chmod *)",
+      "Bash(chmod u+x *)",
       "Bash(pwd)",
       "Bash(which *)",
       "Bash(echo *)",
