@@ -18,17 +18,19 @@ cp -a /opt/claude-config/* /home/dev/.claude/
 
 # Parse options
 NO_FIREWALL=false
-COPY_WORKFLOWS=true
+ADD_WORKFLOWS=false
 for arg in "$@"; do
     case $arg in
         --no-firewall) NO_FIREWALL=true ;;
-        --no-workflows) COPY_WORKFLOWS=false ;;
+        --add-workflows) ADD_WORKFLOWS=true ;;
     esac
 done
 
-# Copy workflows unless --no-workflows is set
-if [ "$COPY_WORKFLOWS" = true ]; then
+# Copy workflows only when --add-workflows is set
+if [ "$ADD_WORKFLOWS" = true ]; then
     cp -a /opt/claude-workflows/* /home/dev/.claude/
+    WORKFLOW_COUNT=$(find /opt/claude-workflows -type f | wc -l)
+    echo "Added $WORKFLOW_COUNT workflow files from container image"
 fi
 
 if [ "$NO_FIREWALL" = true ]; then

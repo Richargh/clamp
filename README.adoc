@@ -32,6 +32,10 @@ Options:
 * `--no-firewall` - Disable the network firewall (allow all outbound traffic)
 * `--shell` - Drop to shell instead of launching Claude (for debugging)
 
+Environment variables:
+
+* `CLAUDE_CLAMP_ADD_WORKFLOWS` - Set to `true` to copy bundled workflows into the container
+
 *Example* to start in the current folder:
 
 [source,bash]
@@ -89,6 +93,35 @@ claude-clamp /path/to/project
 * Docker
 
 == Workflows
+
+The container includes bundled workflows but they are not copied by default. To enable them, set `CLAUDE_CLAMP_ADD_WORKFLOWS=true`.
+
+=== Enabling Workflows Permanently
+
+For bash (add to `~/.bashrc`):
+
+[source,bash]
+----
+export CLAUDE_CLAMP_ADD_WORKFLOWS=true
+----
+
+For zsh (add to `~/.zshrc`):
+
+[source,bash]
+----
+export CLAUDE_CLAMP_ADD_WORKFLOWS=true
+----
+
+For fish (add to `~/.config/fish/config.fish`):
+
+[source,fish]
+----
+set -gx CLAUDE_CLAMP_ADD_WORKFLOWS true
+----
+
+After adding, reload your shell or run `source` on the config file.
+
+=== Included Workflows
 
 The workflows here are my versions of popular open source workflows including:
 

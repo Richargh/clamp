@@ -11,17 +11,18 @@ usage() {
     echo "  --no-cache: Rebuild without Docker layer cache"
     echo "  --per-project-auth: Use separate credentials for this project"
     echo "  --no-firewall: Disable the network firewall (allow all outbound traffic). Useful for constrained research."
-    echo "  --no-workflows: Skip copying workflows from the image"
     echo "  --danger: Run Claude with --dangerously-skip-permissions (no confirmations)"
     echo "  --shell: Run startup then drop to shell instead of launching Claude (for debugging)"
     echo "  folder: Path to the project folder to run in"
+    echo ""
+    echo "Environment variables:"
+    echo "  CLAUDE_CLAMP_ADD_WORKFLOWS: Set to 'true' to copy bundled workflows into container"
 }
 
 REBUILD=false
 NO_CACHE=""
 PER_PROJECT_AUTH=false
 NO_FIREWALL=false
-NO_WORKFLOWS=false
 DANGER_MODE=false
 SHELL_MODE=false
 
@@ -43,10 +44,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-firewall)
             NO_FIREWALL=true
-            shift
-            ;;
-        --no-workflows)
-            NO_WORKFLOWS=true
             shift
             ;;
         --danger)
@@ -104,8 +101,8 @@ if [ "$NO_FIREWALL" = true ]; then
 else
     CAP_OPTS="--cap-add=NET_ADMIN"
 fi
-if [ "$NO_WORKFLOWS" = true ]; then
-    STARTUP_OPTS="$STARTUP_OPTS --no-workflows"
+if [ "${CLAUDE_CLAMP_ADD_WORKFLOWS:-false}" = true ]; then
+    STARTUP_OPTS="$STARTUP_OPTS --add-workflows"
 fi
 
 # Set final command based on --shell and --danger flags
