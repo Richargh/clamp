@@ -1,0 +1,76 @@
+---
+status: Accepted
+version: 1.0.0
+date: 2026-02-04
+last_updated: 2026-02-04
+---
+
+= ADR-001: No Support for Nested Containers (Docker-in-Docker / Podman-in-Podman)
+
+== 1) Context & Problem Statement
+
+Should Clamp be able to run docker containers? Containers are useful for development (e.g. link:https://testcontainers.com/[TestContainers]) or to spin up a dependency more permanently for development (e.g. a database). It also useful to be able to launch them inside Clamp for the agent to be able to debug them. We investigated whether to enable nested container support and what security tradeoffs would be required.
+
+== 2) Options Considered
+
+. *Option A: Enable nested containers with full security flags* — link:https://www.redhat.com/en/blog/podman-inside-kubernetes[Launch outer container with] `--device /dev/fuse`, `--security-opt seccomp=unconfined`, and `--security-opt label=disable`
+. *Option B: Enable nested containers with custom seccomp profile* — Create a minimal seccomp profile allowing only required syscalls
+. *Option C: Do not support nested containers* — Keep container security posture intact, document alternatives
+. *Option D: Use socket mounting* — Mount host Docker/Podman socket into container
+
+=== Quick Comparison
+
+[cols="1,2,3,1,1", options="header"]
+|===
+| Option | Pros | Cons | Risk | Complexity
+
+| A: Full security flags
+| Works reliably
+| Disables seccomp (~50+ syscalls exposed) and SELinux/AppArmor
+| High
+| Low
+
+| B: Custom seccomp
+| More targeted
+| Still requires `label=disable`; ongoing maintenance as Podman evolves
+| Medium-High
+| High
+
+| C: No nested containers
+| Full security retained
+| Users cannot run containers inside
+| Low
+| Low
+
+| D: Socket mounting
+| Simple, fast
+| Container processes get full host root access; complete host compromise
+| Critical
+| Low
+|===
+
+== 3) Decision
+
+*Chosen option:* Option C — Do not support nested containers
+
+*Because:* All functional options require disabling critical security layers (seccomp and/or SELinux). The attack surface increase is not justified for a development container. The `seccomp=unconfined` flag alone exposes syscalls commonly used in container escape exploits (`clone()` with namespace flags, `mount()` variants, `ptrace()`). Option D would mean that the container can connect to the host daemon and escape the sandbox (link:https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/docker-security/docker-breakout-privilege-escalation/index.html#mounted-docker-socket-escape[e.g. like the this]: `docker run -v /:/host alpine cat /host/etc/shadow`)
+
+== 4) Consequences
+
+*Positive:*
+- Container maintains all defense layers: namespaces, capabilities, seccomp, SELinux/AppArmor
+- No documentation burden for complex nested container configurations
+- Users cannot accidentally weaken security following nested container tutorials
+
+*Negative:*
+- Users cannot run containers inside this development environment
+
+*Mitigations:*
+
+- Users needing container builds inside clamp can use:
+    - link:https://buildah.io/[Buildah] (link:https://podman.io/[Podman]'s "build" command uses a link:https://www.redhat.com/en/topics/containers/what-is-buildah[subset of Buildah’s functionality]) but only with vfs storage driver.
+    - link:https://github.com/chainguard-forks/kaniko[Kaniko] but only if base image is changed to Kaniko.
+
+== 5) Change Log
+
+* v1.0.0 — Accepted after security analysis of nested container options

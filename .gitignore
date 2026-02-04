@@ -21,3 +21,6 @@
 !UNLICENSE
 
 !.drafts
+!.drafts/**
+!.docs/
+!.docs/**
