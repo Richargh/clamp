@@ -1,0 +1,10 @@
+#!/bin/bash
+# Stub xdg-open for headless container - prints URL for manual opening
+echo ""
+echo "=============================================="
+echo "Please open this URL in your browser:"
+echo ""
+echo "  $1"
+echo ""
+echo "=============================================="
+echo ""

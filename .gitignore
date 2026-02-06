@@ -1,22 +1,30 @@
 *
 !Dockerfile
 !init-firewall.sh
+!clamp-shared/
+!clamp-shared/**
 !claude-clamp-core/
 !claude-clamp-core/**
 !claude-clamp-workflows/
 !claude-clamp-workflows/**
+!opencode-clamp-core
+!opencode-clamp-core/**
 !startup-scripts/
 !startup-scripts/**
+!.dockerignore
+
+!.gitignore
+
+!clamp-claude.sh
+!clamp-open-code.sh
+!clamp-lib.sh
+!clamp-cleanup.sh
 
 !.github
 !.github/**
 
-!claude-clamp.sh
-!claude-clamp-cleanup.sh
 !Customization.adoc
 !README.adoc
-!.gitignore
-!.dockerignore
 !renovate.json
 !UNLICENSE
 

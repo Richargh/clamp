@@ -3,7 +3,7 @@
 usage() {
     echo "Usage: $(basename "$0") [-h|--help]"
     echo ""
-    echo "Interactive cleanup tool for Docker volumes created by claude-clamp."
+    echo "Interactive cleanup tool for Docker volumes created by claude-clamp and open-clamp."
     echo ""
     echo "Options:"
     echo "  -h, --help    Show this help message"
@@ -92,8 +92,13 @@ get_projects() {
 }
 
 # Check if global claude-clamp volume exists
-has_global_volume() {
+has_claude_global_volume() {
     docker volume ls --format '{{.Name}}' 2>/dev/null | grep -qx "claude-clamp"
+}
+
+# Check if global opencode-clamp volume exists
+has_opencode_global_volume() {
+    docker volume ls --format '{{.Name}}' 2>/dev/null | grep -qx "opencode-clamp"
 }
 
 # Get volumes for a project
@@ -108,9 +113,16 @@ get_project_volumes() {
         fi
     done
 
-    local auth_vol="claude-clamp-${project}"
-    if docker volume ls --format '{{.Name}}' | grep -qx "$auth_vol"; then
-        volumes+=("$auth_vol")
+    # Check for Claude per-project auth volume
+    local claude_auth_vol="claude-clamp-${project}"
+    if docker volume ls --format '{{.Name}}' | grep -qx "$claude_auth_vol"; then
+        volumes+=("$claude_auth_vol")
+    fi
+
+    # Check for OpenCode per-project auth volume
+    local opencode_auth_vol="opencode-clamp-${project}"
+    if docker volume ls --format '{{.Name}}' | grep -qx "$opencode_auth_vol"; then
+        volumes+=("$opencode_auth_vol")
     fi
 
     printf '%s\n' "${volumes[@]}"
@@ -196,19 +208,19 @@ interactive_select() {
                 ;;
             SPACE)
                 if [[ "${SELECTED[$CURSOR]}" == "1" ]]; then
-                    SELECTED[$CURSOR]="0"
+                    SELECTED[CURSOR]="0"
                 else
-                    SELECTED[$CURSOR]="1"
+                    SELECTED[CURSOR]="1"
                 fi
                 ;;
             ALL)
                 for ((i = 0; i < num_items; i++)); do
-                    SELECTED[$i]="1"
+                    SELECTED[i]="1"
                 done
                 ;;
             NONE)
                 for ((i = 0; i < num_items; i++)); do
-                    SELECTED[$i]="0"
+                    SELECTED[i]="0"
                 done
                 ;;
             ENTER)
@@ -229,29 +241,43 @@ interactive_select() {
 
 # Main
 main() {
-    echo "${BOLD}Claude Clamp Volume Cleanup${RESET}"
+    echo "${BOLD}Clamp Volume Cleanup${RESET}"
     echo ""
 
     local projects_list
     projects_list=$(get_projects)
 
     if [[ -z "$projects_list" ]]; then
-        echo "No claude-clamp project volumes found."
-        exit 0
+        local has_any_global=false
+        has_claude_global_volume && has_any_global=true
+        has_opencode_global_volume && has_any_global=true
+
+        if ! $has_any_global; then
+            echo "No clamp project volumes found."
+            exit 0
+        fi
     fi
 
     while IFS= read -r project; do
         [[ -n "$project" ]] && ITEMS+=("$project")
     done <<< "$projects_list"
 
-    local has_global=false
-    if has_global_volume; then
-        has_global=true
+    # Track global volume positions
+    local claude_global_idx=-1
+    local opencode_global_idx=-1
+
+    if has_claude_global_volume; then
+        claude_global_idx=${#ITEMS[@]}
         ITEMS+=("[GLOBAL] claude-clamp config")
     fi
 
+    if has_opencode_global_volume; then
+        opencode_global_idx=${#ITEMS[@]}
+        ITEMS+=("[GLOBAL] opencode-clamp config")
+    fi
+
     if [[ ${#ITEMS[@]} -eq 0 ]]; then
-        echo "No claude-clamp volumes found."
+        echo "No clamp volumes found."
         exit 0
     fi
 
@@ -268,8 +294,10 @@ main() {
 
     for ((i = 0; i < ${#ITEMS[@]}; i++)); do
         if [[ "${SELECTED[$i]}" == "1" ]]; then
-            if $has_global && [[ $i -eq $((${#ITEMS[@]} - 1)) ]]; then
+            if [[ $i -eq $claude_global_idx ]]; then
                 volumes_to_delete+=("claude-clamp")
+            elif [[ $i -eq $opencode_global_idx ]]; then
+                volumes_to_delete+=("opencode-clamp")
             else
                 local project="${ITEMS[$i]}"
                 while IFS= read -r vol; do

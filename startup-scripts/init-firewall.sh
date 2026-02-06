@@ -1,10 +1,11 @@
 #!/bin/bash
-# Firewall initialization script for Claude Code container
+# Firewall initialization script for clamp containers
 # Based on Anthropic's init-firewall.sh, extended with JVM repository domains
 
 set -e
 
-DOMAINS_FILE="/home/dev/.claude/hooks/allowed-domains.txt"
+# Accept domains file path as argument, default to Claude location for backwards compatibility
+DOMAINS_FILE="${1:-/home/dev/.claude/hooks/allowed-domains.txt}"
 
 # Read domains from file (skip comments and empty lines)
 ALLOWED_DOMAINS=()

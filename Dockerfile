@@ -1,6 +1,7 @@
 FROM debian:12.13-slim
 
 ARG CLAUDE_CODE_VERSION=2.1.0
+ARG OPENCODE_VERSION=1.1.49
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -73,21 +74,28 @@ RUN groupadd --gid $USER_GID $USERNAME \
     # Create workspace and volume mount directories with correct ownership \
     # (Docker preserves ownership when initializing named volumes from existing dirs) \
     && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
-    && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME/.gradle
+    && mkdir -p /home/$USERNAME/.local/share/opencode \
+    && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME/.gradle /home/$USERNAME/.local
 
-# Install Claude Code
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+# Install Claude Code and OpenCode
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+    && npm install -g opencode-ai@${OPENCODE_VERSION}
 
-# Disable auto-update since global npm packages require root permissions
+# Disable auto-updates since global npm packages require root permissions
 ENV DISABLE_AUTOUPDATER=1
+ENV OPENCODE_DISABLE_AUTOUPDATE=1
 
 # Copy startup scripts
 COPY startup-scripts/ /usr/local/bin/
 
+# Copy shared config (allowed-domains.txt)
+COPY --chown=$USERNAME:$USERNAME clamp-shared /opt/clamp-shared
 # Copy claude config to template location (fresh copy on each container start)
 COPY --chown=$USERNAME:$USERNAME claude-clamp-core /opt/claude-config
 # Copy claude workflows to template location
 COPY --chown=$USERNAME:$USERNAME claude-clamp-workflows /opt/claude-workflows
+# Copy opencode config to template location
+COPY --chown=$USERNAME:$USERNAME opencode-clamp-core /opt/opencode-config
 
 WORKDIR /workspace
 USER $USERNAME

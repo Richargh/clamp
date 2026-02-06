@@ -5,5 +5,9 @@
 !claude-clamp-core/**
 !claude-clamp-workflows/
 !claude-clamp-workflows/**
+!opencode-clamp-core/
+!opencode-clamp-core/**
+!clamp-shared/
+!clamp-shared/**
 !startup-scripts/
 !startup-scripts/**

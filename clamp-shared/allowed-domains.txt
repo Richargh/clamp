@@ -1,10 +1,12 @@
-# Allowed domains for Claude Code container
-# Used by both the firewall (init-firewall.sh) and fetch hook
+# Allowed domains for clamp containers
+# Used by the firewall (init-firewall.sh)
 
-# Anthropic API
+# AI Provider APIs
 api.anthropic.com
 sentry.io
 statsig.anthropic.com
+api.openai.com
+generativelanguage.googleapis.com
 
 # GitHub
 github.com
