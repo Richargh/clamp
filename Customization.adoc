@@ -77,7 +77,7 @@ After editing, rebuild the container:
 
 [cols="2,2,2,2,2", options="header"]
 |===
-| Customization | Claude Code | Codex | OpenCode | Copilot
+| Customization | Claude Code (link:https://newsletter.pragmaticengineer.com/p/how-claude-code-is-built[TypeScript+React+Bun]) | link:https://github.com/openai/codex[Codex (Rust)] | link:https://github.com/anomalyco/opencode/[OpenCode (TypeScript+Bun)] | Copilot (link:https://github.com/github/copilot-cli[CLI])
 
 | *Global and Project Config Location*
 | `~/.claude/` +
