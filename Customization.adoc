@@ -68,8 +68,82 @@ After editing, rebuild the container:
 
 [source,bash]
 ----
-./claude-clamp.sh --rebuild <folder>
+./clamp-claude.sh --rebuild <folder>
 ----
+
+== Agent Customization
+
+=== Overview
+
+[cols="2,2,2,2,2", options="header"]
+|===
+| Customization | Claude Code | Codex | OpenCode | Copilot
+
+| *Global and Project Config Location*
+| `~/.claude/` +
+`.claude/`
+| `~/.codex/` +
+`.codex/`
+| `~/.config/opencode/` +
+`.opencode/`
+| `~/.copilot/` +
+`.github/`
+
+| *Project Settings*
+| `.claude/settings.json`
+| link:https://developers.openai.com/codex/config-reference/[`.codex/config.toml`]
+| link:https://opencode.ai/docs/config/[`.opencode/opencode.jsonc`]
+| N/A
+
+| *Lifecycle Hooks*
+| link:https://code.claude.com/docs/en/hooks#configuration-safety[`.claude/settings.json`]
+| link:https://developers.openai.com/codex/config-reference/[Limited `.codex/config.toml`]
+| N/A
+| link:https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-hooks#example-hook-configuration-file[`.github/hooks/project-hooks.json`]
+
+| *Global Instructions*
+| `~/.claude/CLAUDE.md`
+| `~/.codex/AGENTS.md`
+| link:https://opencode.ai/docs/rules/#global[`~/.config/opencode/AGENTS.md`]
+| `~/.copilot/copilot-instructions.md`
+
+| *Project Instructions*
+| `./CLAUDE.md`
+| link:https://developers.openai.com/codex/guides/agents-md/[`./AGENTS.md`]
+| link:https://opencode.ai/docs/rules/#project[`./AGENTS.md`]
+| link:https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions?tool=jetbrains[`.github/copilot-instructions.md`] and `./AGENTS.md`
+
+| *Path-Specific Rules*
+| Nested `CLAUDE.md` files, link:https://code.claude.com/docs/en/memory#path-specific-rules[`./.claude/rules/*.md` with `paths` glob]
+| Nested `AGENTS.md` files
+| N/A
+| link:https://docs.github.com/en/copilot/how-tos/copilot-cli/add-custom-instructions#creating-path-specific-custom-instructions[`.github/instructions/*.instructions.md` with `applyTo` glob]
+
+| *Subagents*
+| link:https://code.claude.com/docs/en/sub-agents#write-subagent-files[`.claude/agents/*.md`]
+| N/A
+| link:https://opencode.ai/docs/agents/#examples[`.opencode/agents/*.md`]
+| link:https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents[`.github/agents/*.agent.md`]
+
+| *Custom Commands/Prompts*
+| `.claude/commands/*.md`
+| Deprecated in favor of Skills
+| link:https://opencode.ai/docs/commands/[`.opencode/commands/*.md`]
+| link:https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions?tool=jetbrains[`.github/prompts/*.prompt.md`]
+
+| *Custom Skills*
+| link:https://code.claude.com/docs/en/skills[`.claude/skills/<name>/SKILL.md`]
+| link:https://developers.openai.com/codex/skills[`.agents/skills/<name>/SKILL.md`], launch with `$SKILL` or `/skill`
+| link:https://opencode.ai/docs/skills/[`.opencode/skills/<name>/SKILL.md`]
+| link:https://docs.github.com/en/copilot/concepts/agents/about-agent-skills[`.github/skills/<name>/SKILL.md`]
+
+| *Custom Tools*
+| N/A
+| N/A
+| link:https://opencode.ai/docs/custom-tools/[`.opencode/tools/<name>.ts/js`]
+| N/A
+
+|===
 
 == Adding Custom Hooks
 
@@ -333,14 +407,14 @@ After making customizations, rebuild the container:
 
 [source,bash]
 ----
-./claude-clamp.sh --rebuild <folder>
+./clamp-claude.sh --rebuild <folder>
 ----
 
 For a completely fresh build:
 
 [source,bash]
 ----
-./claude-clamp.sh --rebuild --no-cache <folder>
+./clamp-claude.sh --rebuild --no-cache <folder>
 ----
 
 == Further Reading
