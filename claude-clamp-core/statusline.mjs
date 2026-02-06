@@ -7,4 +7,4 @@ for await (const chunk of process.stdin) {
 }
 
 // Output the status line
-console.log('Caged');
+console.log('Clamped');
