@@ -189,4 +189,24 @@ The link:init-firewall.sh[] script sets the allowed domains. See link:claude/hoo
 |Native
 |`--net=none` or namespace
 |Linux security sandbox. Namespaces + seccomp.
+
+| link:https://github.com/krivulcik/yolobox[Yolobox]
+| Docker
+| None
+|
+
+|link:https://github.com/webcoyote/sandvault[Sandvault]
+|Native?
+|None?
+|
+
+|link:https://github.com/loon-labs/llm-sandboxes[LLM Sandboxes]
+|Docker
+|Firewall allowlist
+|
+
+|link:https://github.com/IngmarKrusch/claude-docker[IngmarKrusch/claude-docker]
+|Docker
+|Firewall allowlist
+|
 |===
