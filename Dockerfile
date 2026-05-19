@@ -81,7 +81,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 # Install Claude Code and OpenCode
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
-    && npm install -g opencode-ai@${OPENCODE_VERSION}
+    && npm install -g opencode-ai@${OPENCODE_VERSION} \
+    && npm install -g @earendil-works/pi-coding-agent@0.75.3
 
 # Disable auto-updates since global npm packages require root permissions
 ENV DISABLE_AUTOUPDATER=1
@@ -98,6 +99,9 @@ COPY --chown=$USERNAME:$USERNAME claude-clamp-core /opt/claude-config
 COPY --chown=$USERNAME:$USERNAME claude-clamp-workflows /opt/claude-workflows
 # Copy opencode config to template location
 COPY --chown=$USERNAME:$USERNAME opencode-clamp-core /opt/opencode-config
+# Copy pi config to template location
+COPY --chown=$USERNAME:$USERNAME clamp-pi /opt/pi-config
+RUN mkdir -p /home/$USERNAME/.pi && chown $USERNAME:$USERNAME /home/$USERNAME/.pi
 
 WORKDIR /workspace
 USER $USERNAME

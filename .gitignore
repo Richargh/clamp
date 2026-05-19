@@ -1,6 +1,7 @@
 *
 !Dockerfile
 !init-firewall.sh
+
 !clamp-shared/
 !clamp-shared/**
 !claude-clamp-core/
@@ -9,6 +10,9 @@
 !claude-clamp-workflows/**
 !opencode-clamp-core
 !opencode-clamp-core/**
+!clamp-pi
+!clamp-pi/**
+
 !startup-scripts/
 !startup-scripts/**
 !.dockerignore
@@ -17,6 +21,7 @@
 
 !clamp-claude.sh
 !clamp-open-code.sh
+!clamp-pi.sh
 !clamp-lib.sh
 !clamp-cleanup.sh
 

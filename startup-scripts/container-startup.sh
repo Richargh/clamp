@@ -25,7 +25,7 @@ for arg in "$@"; do
 done
 
 # Validate harness
-if [ "$HARNESS" != "claude" ] && [ "$HARNESS" != "opencode" ]; then
+if [ "$HARNESS" != "claude" ] && [ "$HARNESS" != "opencode" ] && [ "$HARNESS" != "pi" ]; then
     echo "Error: --harness must be either 'claude' or 'opencode', got '$HARNESS'"
     exit 1
 fi
@@ -35,7 +35,7 @@ fi
 if [ "$HARNESS" = "claude" ]; then
     cp -a /opt/claude-config/* /home/dev/.claude/
     cp /opt/clamp-shared/allowed-domains.txt /home/dev/.claude/hooks/
-else
+elif [ "$HARNESS" = "opencode" ]; then
     cp -a /opt/opencode-config/* /home/dev/.local/share/opencode/
     mkdir -p /home/dev/.local/share/opencode/hooks
     cp /opt/clamp-shared/allowed-domains.txt /home/dev/.local/share/opencode/hooks/
