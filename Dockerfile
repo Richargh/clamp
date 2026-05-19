@@ -2,6 +2,7 @@ FROM debian:12.13-slim
 
 ARG CLAUDE_CODE_VERSION=2.1.138
 ARG OPENCODE_VERSION=1.2.27
+ARG PI_VERSION=0.75.3
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -82,7 +83,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # Install Claude Code and OpenCode
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
     && npm install -g opencode-ai@${OPENCODE_VERSION} \
-    && npm install -g @earendil-works/pi-coding-agent@0.75.3
+    && npm install -g @earendil-works/pi-coding-agent@${PI_VERSION}
 
 # Disable auto-updates since global npm packages require root permissions
 ENV DISABLE_AUTOUPDATER=1
