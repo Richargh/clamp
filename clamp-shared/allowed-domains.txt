@@ -8,6 +8,14 @@ statsig.anthropic.com
 api.openai.com
 generativelanguage.googleapis.com
 
+# OpenAi
+api.openai.com
+auth.openai.com
+chatgpt.com
+openai.com
+chat.openai.com
+auth0.openai.com
+
 # GitHub
 github.com
 api.github.com
