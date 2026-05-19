@@ -7,9 +7,9 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install prerequisites, add external repositories, and tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl=7.88.1-10+deb12u14 \
-    ca-certificates=20230311+deb12u1 \
-    gnupg=2.2.40-1.1+deb12u2 \
+    curl=7.88.1-10+deb12u* \
+    ca-certificates=20230311+deb12u* \
+    gnupg=2.2.40-1.1+deb12u* \
     && mkdir -p /etc/apt/keyrings \
     # Add Eclipse Temurin (Adoptium) repository \
     && curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg \
@@ -23,30 +23,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables=1.8.9-2 \
     ipset=7.17-1 \
     iproute2=6.1.0-3 \
-    dnsutils=1:9.18.41-1~deb12u1 \
+    bind9-dnsutils=1:9.18.47-1~deb12u1 \
     aggregate=1.6-7+b1 \
     # General tools \
-    git=1:2.39.5-0+deb12u3 \
-    jq=1.6-2.1+deb12u1 \
-    sudo=1.9.13p3-1+deb12u3 \
+    git=1:2.39.5-0+deb12u* \
+    jq=1.6-2.1+deb12u* \
+    sudo=1.9.13p3-1+deb12u* \
     procps=2:4.0.2-3 \
     zip=3.0-13 \
     unzip=6.0-28 \
     # Chromium dependencies \
-    libglib2.0-0=2.74.6-2+deb12u8 \
+    libglib2.0-0=2.74.6-2+deb12u* \
     libnspr4=2:4.35-1 \
-    libnss3=2:3.87.1-1+deb12u1 \
+    libnss3=2:3.87.1-1+deb12u* \
     libatk1.0-0=2.46.0-5 \
     libatk-bridge2.0-0=2.46.0-5 \
-    libdbus-1-3=1.14.10-1~deb12u1 \
-    libcups2=2.4.2-3+deb12u9 \
+    libdbus-1-3=1.14.10-1~deb12u* \
+    libcups2=2.4.2-3+deb12u* \
     libxkbcommon0=1.5.0-1 \
     libatspi2.0-0=2.46.0-5 \
     libxcomposite1=1:0.4.5-1 \
     libxdamage1=1:1.1.6-1 \
     libxfixes3=1:6.0.0-2 \
     libxrandr2=2:1.5.2-2+b1 \
-    libgbm1=22.3.6-1+deb12u1 \
+    libgbm1=22.3.6-1+deb12u* \
     libcairo2=1.16.0-7 \
     libpango-1.0-0=1.50.12+ds-1 \
     # Linting tools \
