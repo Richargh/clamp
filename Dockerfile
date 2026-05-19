@@ -1,7 +1,7 @@
 FROM debian:12.13-slim
 
 ARG CLAUDE_CODE_VERSION=2.1.138
-ARG OPENCODE_VERSION=1.1.49
+ARG OPENCODE_VERSION=1.2.27
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
