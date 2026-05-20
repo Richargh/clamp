@@ -13,8 +13,9 @@
 #   CLAMP_SCRIPT_DIR     - Directory containing the wrapper script
 #   CLAMP_WORKFLOWS_ENV  - Environment variable for workflows ("CLAUDE_CLAMP_ADD_WORKFLOWS" or "OPENCODE_CLAMP_ADD_WORKFLOWS")
 
-# Image name is shared between all tools
-CLAMP_IMAGE_NAME="claude-clamp"
+# Image names / Dockerfiles
+CLAMP_BASE_IMAGE_NAME="clamp-base"
+CLAMP_IMAGE_NAME=""
 
 # Parsed argument flags (set by clamp_parse_args)
 CLAMP_REBUILD=false
@@ -91,10 +92,31 @@ clamp_parse_args() {
 }
 
 clamp_build_image() {
-    # Build if image doesn't exist or --rebuild flag is set
+    local tool_dockerfile base_dockerfile
+
+    CLAMP_IMAGE_NAME="clamp-${CLAMP_HARNESS}"
+    base_dockerfile="$CLAMP_SCRIPT_DIR/clamp-base.Dockerfile"
+    tool_dockerfile="$CLAMP_SCRIPT_DIR/clamp-${CLAMP_HARNESS}.Dockerfile"
+
+    if [ ! -f "$base_dockerfile" ]; then
+        echo "Missing Dockerfile: $base_dockerfile"
+        exit 1
+    fi
+    if [ ! -f "$tool_dockerfile" ]; then
+        echo "Missing Dockerfile: $tool_dockerfile"
+        exit 1
+    fi
+
+    # Build base if needed
+    if [ "$CLAMP_REBUILD" = true ] || ! docker image inspect "$CLAMP_BASE_IMAGE_NAME" &>/dev/null; then
+        echo "Building $CLAMP_BASE_IMAGE_NAME from clamp-base.Dockerfile..."
+        docker build $CLAMP_NO_CACHE -f "$base_dockerfile" -t "$CLAMP_BASE_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
+    fi
+
+    # Build tool image if needed
     if [ "$CLAMP_REBUILD" = true ] || ! docker image inspect "$CLAMP_IMAGE_NAME" &>/dev/null; then
-        echo "Building $CLAMP_IMAGE_NAME..."
-        docker build $CLAMP_NO_CACHE -t "$CLAMP_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
+        echo "Building $CLAMP_IMAGE_NAME from clamp-${CLAMP_HARNESS}.Dockerfile..."
+        docker build $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$CLAMP_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
     fi
 }
 

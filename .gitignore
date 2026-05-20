@@ -1,5 +1,9 @@
 *
 !Dockerfile
+!clamp-base.Dockerfile
+!clamp-claude.Dockerfile
+!clamp-opencode.Dockerfile
+!clamp-pi.Dockerfile
 !init-firewall.sh
 
 !clamp-shared/

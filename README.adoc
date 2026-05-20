@@ -20,7 +20,9 @@ This provides a *bare minimum* of isolation. Data exfiltration is still possible
 
 [source,bash]
 ----
-./claude-clamp.sh [options] <folder>
+./clamp-claude.sh [options] <folder>
+# or
+./clamp-pi.sh [options] <folder>
 ----
 
 Options:
@@ -40,7 +42,9 @@ Environment variables:
 
 [source,bash]
 ----
-./claude-clamp.sh .
+./clamp-claude.sh .
+# or
+./clamp-pi.sh .
 ----
 
 === Global Installation
@@ -78,7 +82,7 @@ Create symlink (in local bin):
 
 [source,bash]
 ----
-ln -s /path/to/repository/claude-clamp.sh ~/.local/bin/claude-clamp
+ln -s /path/to/repository/clamp-claude.sh ~/.local/bin/claude-clamp
 ----
 
 Then run from anywhere:
@@ -91,6 +95,27 @@ claude-clamp /path/to/project
 == Requirements
 
 * Docker
+
+== Dockerfiles and Images
+
+The repository uses split Dockerfiles with a shared base:
+
+* `clamp-base.Dockerfile` -> image `clamp-base`
+* `clamp-claude.Dockerfile` -> image `clamp-claude`
+* `clamp-opencode.Dockerfile` -> image `clamp-opencode`
+* `clamp-pi.Dockerfile` -> image `clamp-pi`
+
+Build manually:
+
+[source,bash]
+----
+docker build -f clamp-base.Dockerfile -t clamp-base .
+docker build -f clamp-claude.Dockerfile -t clamp-claude .
+docker build -f clamp-opencode.Dockerfile -t clamp-opencode .
+docker build -f clamp-pi.Dockerfile -t clamp-pi .
+----
+
+The wrapper scripts (`clamp-claude.sh`, `clamp-open-code.sh`, `clamp-pi.sh`) build these images automatically when needed.
 
 == Workflows
 
