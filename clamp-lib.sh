@@ -21,10 +21,15 @@ CLAMP_IMAGE_NAME=""
 CLAMP_REBUILD=false
 CLAMP_NO_CACHE=""
 CLAMP_PER_PROJECT_AUTH=false
+CLAMP_PER_PROJECT_AUTH_EXPLICIT=false
 CLAMP_NO_FIREWALL=false
 CLAMP_DANGER_MODE=false
 CLAMP_SHELL_MODE=false
 CLAMP_FOLDER=""
+
+# User config
+CLAMP_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/clamp"
+CLAMP_AUTH_CONFIG="$CLAMP_CONFIG_HOME/auth-projects.tsv"
 
 clamp_usage() {
     echo "Usage: $(basename "$0") [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] [--no-firewall] [--danger] [--shell] <folder>"
@@ -55,6 +60,7 @@ clamp_parse_args() {
                 ;;
             --per-project-auth)
                 CLAMP_PER_PROJECT_AUTH=true
+                CLAMP_PER_PROJECT_AUTH_EXPLICIT=true
                 shift
                 ;;
             --no-firewall)
@@ -91,6 +97,125 @@ clamp_parse_args() {
     fi
 }
 
+clamp_config_get_auth_policy() {
+    local workspace="$1"
+
+    [ -f "$CLAMP_AUTH_CONFIG" ] || return 1
+
+    awk -F '\t' -v path="$workspace" '$1 == path { print $2; found=1 } END { exit !found }' "$CLAMP_AUTH_CONFIG"
+}
+
+clamp_config_set_auth_policy() {
+    local workspace="$1"
+    local policy="$2"
+
+    mkdir -p "$CLAMP_CONFIG_HOME"
+
+    if [ -f "$CLAMP_AUTH_CONFIG" ]; then
+        awk -F '\t' -v path="$workspace" '$1 != path' "$CLAMP_AUTH_CONFIG" > "${CLAMP_AUTH_CONFIG}.tmp"
+        mv "${CLAMP_AUTH_CONFIG}.tmp" "$CLAMP_AUTH_CONFIG"
+    fi
+
+    printf '%s\t%s\n' "$workspace" "$policy" >> "$CLAMP_AUTH_CONFIG"
+}
+
+clamp_prompt_auth_policy() {
+    local workspace="$1"
+    local choice
+
+    echo "No Clamp auth preference found for:" >&2
+    echo "  $workspace" >&2
+    echo "" >&2
+    echo "Use:" >&2
+    echo "  1) global/shared auth" >&2
+    echo "  2) per-project auth" >&2
+    echo "" >&2
+
+    while true; do
+        printf "Choice [1/2]: " >&2
+        if ! read -r choice; then
+            echo "Unable to read auth preference." >&2
+            exit 1
+        fi
+        case "$choice" in
+            1|"")
+                echo "global"
+                return
+                ;;
+            2)
+                echo "project"
+                return
+                ;;
+            *)
+                echo "Please enter 1 or 2." >&2
+                ;;
+        esac
+    done
+}
+
+clamp_resolve_auth_policy() {
+    local workspace policy
+
+    workspace="$(cd "$CLAMP_FOLDER" && pwd)"
+
+    if [ "$CLAMP_PER_PROJECT_AUTH_EXPLICIT" = true ]; then
+        clamp_config_set_auth_policy "$workspace" "project"
+        return
+    fi
+
+    policy="$(clamp_config_get_auth_policy "$workspace")" || {
+        policy="$(clamp_prompt_auth_policy "$workspace")"
+        clamp_config_set_auth_policy "$workspace" "$policy"
+    }
+
+    case "$policy" in
+        project)
+            CLAMP_PER_PROJECT_AUTH=true
+            ;;
+        global)
+            CLAMP_PER_PROJECT_AUTH=false
+            ;;
+        *)
+            echo "Invalid Clamp auth policy for $workspace: $policy"
+            exit 1
+            ;;
+    esac
+}
+
+clamp_log_config() {
+    local auth firewall header_color text_color reset_color
+
+    if [ -t 1 ]; then
+        header_color=$'\033[1;36m'
+        text_color=$'\033[90m'
+        reset_color=$'\033[0m'
+    else
+        header_color=""
+        text_color=""
+        reset_color=""
+    fi
+
+    if [ "$CLAMP_PER_PROJECT_AUTH" = true ]; then
+        auth="Project"
+    else
+        auth="Global"
+    fi
+
+    if [ "$CLAMP_NO_FIREWALL" = true ]; then
+        firewall="Off"
+    else
+        firewall="On"
+    fi
+
+    printf '%s[Clamp User Config]%s\n' "$header_color" "$reset_color"
+    printf '%s  Auth: %s%s\n' "$text_color" "$auth" "$reset_color"
+    echo ""
+    printf '%s[Clamp CLI Config]%s\n' "$header_color" "$reset_color"
+    printf '%s  Coding Agent: %s%s\n' "$text_color" "$CLAMP_TOOL_NAME" "$reset_color"
+    printf '%s  Firewall: %s%s\n' "$text_color" "$firewall" "$reset_color"
+    echo ""
+}
+
 clamp_build_image() {
     local tool_dockerfile base_dockerfile
 
@@ -121,15 +246,16 @@ clamp_build_image() {
 }
 
 clamp_run() {
-    local workspace container_name project_name config_volume startup_opts cap_opts final_cmd workflows_enabled
+    local workspace container_name project_name project_key config_volume startup_opts cap_opts final_cmd workflows_enabled
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
     container_name="${CLAMP_VOLUME_PREFIX}-$(date +%Y%m%d-%H%M%S)"
     project_name=$(basename "$workspace")
+    project_key="$(printf '%s' "$workspace" | cksum | awk '{print $1}')"
 
-    # Determine config volume name based on flag
+    # Determine config volume name based on auth policy
     if [ "$CLAMP_PER_PROJECT_AUTH" = true ]; then
-        config_volume="${CLAMP_VOLUME_PREFIX}-${project_name}"
+        config_volume="${CLAMP_VOLUME_PREFIX}-${project_name}-${project_key}"
     else
         config_volume="${CLAMP_VOLUME_PREFIX}"
     fi
@@ -180,6 +306,8 @@ clamp_run() {
 
 clamp_main() {
     clamp_parse_args "$@"
+    clamp_resolve_auth_policy
+    clamp_log_config
     clamp_build_image
     clamp_run
 }
