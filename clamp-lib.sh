@@ -216,12 +216,53 @@ clamp_log_config() {
     echo ""
 }
 
-clamp_build_image() {
-    local tool_dockerfile base_dockerfile
+clamp_create_project_dockerfile() {
+    local workspace project_dockerfile base_image
 
-    CLAMP_IMAGE_NAME="clamp-${CLAMP_HARNESS}"
+    workspace="$1"
+    project_dockerfile="$workspace/.clamp/clamp.Dockerfile"
+    base_image="clamp-${CLAMP_HARNESS}"
+
+    mkdir -p "$workspace/.clamp"
+
+    if [ -f "$project_dockerfile" ]; then
+        return
+    fi
+
+    {
+        # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
+        printf 'ARG CLAMP_TOOL_IMAGE=%s
+FROM ${CLAMP_TOOL_IMAGE}
+
+ARG USERNAME=dev
+
+USER $USERNAME
+WORKDIR /workspace
+' "$base_image"
+
+        if [ -f "$workspace/mise.toml" ]; then
+            # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
+            printf '
+COPY --chown=$USERNAME:$USERNAME mise.toml /tmp/mise.toml
+RUN mise install -C /tmp
+'
+        fi
+    } > "$project_dockerfile"
+
+    echo "Created project Dockerfile: $project_dockerfile"
+}
+
+clamp_build_image() {
+    local tool_dockerfile base_dockerfile workspace project_key project_dockerfile project_image_name tool_image_name
+
+    workspace="$(cd "$CLAMP_FOLDER" && pwd)"
+    project_key="$(printf '%s' "$workspace" | cksum | awk '{print $1}')"
+    tool_image_name="clamp-${CLAMP_HARNESS}"
+    project_image_name="${tool_image_name}-${project_key}"
+    CLAMP_IMAGE_NAME="$project_image_name"
     base_dockerfile="$CLAMP_SCRIPT_DIR/clamp-base.Dockerfile"
     tool_dockerfile="$CLAMP_SCRIPT_DIR/clamp-${CLAMP_HARNESS}.Dockerfile"
+    project_dockerfile="$workspace/.clamp/clamp.Dockerfile"
 
     if [ ! -f "$base_dockerfile" ]; then
         echo "Missing Dockerfile: $base_dockerfile"
@@ -239,10 +280,17 @@ clamp_build_image() {
     fi
 
     # Build tool image if needed
-    if [ "$CLAMP_REBUILD" = true ] || ! docker image inspect "$CLAMP_IMAGE_NAME" &>/dev/null; then
-        echo "Building $CLAMP_IMAGE_NAME from clamp-${CLAMP_HARNESS}.Dockerfile..."
-        docker build $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$CLAMP_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
+    if [ "$CLAMP_REBUILD" = true ] || ! docker image inspect "$tool_image_name" &>/dev/null; then
+        echo "Building $tool_image_name from clamp-${CLAMP_HARNESS}.Dockerfile..."
+        docker build $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$tool_image_name" "$CLAMP_SCRIPT_DIR"
     fi
+
+    clamp_create_project_dockerfile "$workspace"
+
+    # Always run the project build so edits to .clamp/clamp.Dockerfile are picked up;
+    # Docker's layer cache keeps the no-change path fast.
+    echo "Building $project_image_name from .clamp/clamp.Dockerfile..."
+    docker build $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_dockerfile" -t "$project_image_name" "$workspace"
 }
 
 clamp_run() {
@@ -286,6 +334,7 @@ clamp_run() {
 
     # Run with:
     # - delegated mount for macOS performance
+    # - tmpfs over /workspace/.clamp so containerized agents cannot see Clamp's project config
     # - Named volumes for heavy I/O directories (build artifacts, caches)
     # - Credential volumes (config copied fresh from image on each start)
     # - NET_ADMIN capability for firewall (unless --no-firewall)
@@ -295,6 +344,7 @@ clamp_run() {
         --name "$container_name" \
         $cap_opts \
         -v "$workspace:/workspace:delegated" \
+        --tmpfs /workspace/.clamp:rw,noexec,nosuid,nodev,mode=700 \
         -v "${project_name}-node-modules:/workspace/node_modules" \
         -v "${project_name}-gradle-build:/workspace/build" \
         -v "${project_name}-gradle-cache:/home/dev/.gradle" \
