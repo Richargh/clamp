@@ -2,18 +2,10 @@ FROM debian:12.13-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install prerequisites, add external repositories, and tools
+# Install prerequisites and tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl=7.88.1-10+deb12u* \
     ca-certificates=20230311+deb12u* \
-    gnupg=2.2.40-1.1+deb12u* \
-    && mkdir -p /etc/apt/keyrings \
-    # Add Eclipse Temurin (Adoptium) repository \
-    && curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list \
-    # Add NodeSource repository for Node.js 24.x \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
     && apt-get install -y --no-install-recommends \
     iptables=1.8.9-2 \
     ipset=7.17-1 \
@@ -49,17 +41,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && chmod +x /usr/local/bin/hadolint \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Java and Node.js (from external repos)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    temurin-21-jdk=21.0.9.0.0+10-0 \
-    nodejs=24.13.0-1nodesource1 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user and workspace
 ARG USERNAME=dev
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
+ARG NODE_VERSION=24.13.0
 
+# Install mise
+RUN curl -fsSL https://mise.run -o /tmp/mise-install.sh \
+    && MISE_INSTALL_PATH=/usr/local/bin/mise sh /tmp/mise-install.sh \
+    && rm /tmp/mise-install.sh
+
+# Install image-provided Node.js with mise into a root-owned system location
+RUN export MISE_YES=1 MISE_DATA_DIR=/opt/mise MISE_CONFIG_DIR=/etc/mise MISE_CACHE_DIR=/var/cache/mise \
+    && mise install node@${NODE_VERSION} \
+    && ln -s "$(mise where node@${NODE_VERSION})" /opt/node
+
+ENV HOME=/home/$USERNAME \
+    PATH=/opt/node/bin:$PATH
+
+# Create non-root user and workspace
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/container-startup.sh" > /etc/sudoers.d/$USERNAME \
