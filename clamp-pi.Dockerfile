@@ -1,3 +1,4 @@
+# hadolint ignore=DL3006
 FROM clamp-base
 
 ARG PI_VERSION=0.75.3

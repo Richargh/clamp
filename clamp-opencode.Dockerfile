@@ -1,3 +1,4 @@
+# hadolint ignore=DL3006
 FROM clamp-base
 
 ARG OPENCODE_VERSION=1.2.27

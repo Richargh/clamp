@@ -1,5 +1,4 @@
 *
-!Dockerfile
 !init-firewall.sh
 !.clamp/
 !.clamp/**
