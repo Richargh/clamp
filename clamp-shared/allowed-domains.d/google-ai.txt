@@ -1,0 +1,2 @@
+# Google AI
+generativelanguage.googleapis.com

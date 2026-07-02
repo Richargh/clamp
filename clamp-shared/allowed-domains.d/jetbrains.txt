@@ -1,0 +1,4 @@
+# JetBrains (Kotlin)
+cache-redirector.jetbrains.com
+download.jetbrains.com
+packages.jetbrains.team

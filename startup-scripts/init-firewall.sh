@@ -4,20 +4,58 @@
 
 set -e
 
-# Accept domains file path as argument, default to Claude location for backwards compatibility
-DOMAINS_FILE="${1:-/home/dev/.claude/hooks/allowed-domains.txt}"
+# Accept one or more domain files/directories as arguments. Directory arguments load
+# all *.txt files directly inside the directory. If no arguments are provided,
+# default to the Claude hook domains directory, plus the old single-file location
+# for backwards compatibility.
+DOMAIN_SOURCES=("$@")
+if [ ${#DOMAIN_SOURCES[@]} -eq 0 ]; then
+    DOMAIN_SOURCES=("/home/dev/.claude/hooks/allowed-domains.d" "/home/dev/.claude/hooks/allowed-domains.txt")
+fi
 
-# Read domains from file (skip comments and empty lines)
+DOMAIN_FILES=()
+add_domain_file() {
+    local path="$1"
+    [ -f "$path" ] && DOMAIN_FILES+=("$path")
+}
+
+for source in "${DOMAIN_SOURCES[@]}"; do
+    if [ -d "$source" ]; then
+        while IFS= read -r -d '' file; do
+            DOMAIN_FILES+=("$file")
+        done < <(find "$source" -maxdepth 1 -type f -name '*.txt' -print0 | sort -z)
+    else
+        add_domain_file "$source"
+    fi
+done
+
+if [ ${#DOMAIN_FILES[@]} -eq 0 ]; then
+    echo "Warning: no allowed domain files found in: ${DOMAIN_SOURCES[*]}" >&2
+fi
+
+# Read domains from files (skip comments and empty lines)
+declare -A SEEN_DOMAINS=()
 ALLOWED_DOMAINS=()
-while IFS= read -r line || [[ -n "$line" ]]; do
-    # Trim whitespace and skip comments/empty lines
-    line="${line%%#*}"
-    line="${line// /}"
-    [[ -z "$line" ]] && continue
-    ALLOWED_DOMAINS+=("$line")
-done < "$DOMAINS_FILE"
+for domain_file in "${DOMAIN_FILES[@]}"; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Trim comments, whitespace, and normalize to lowercase
+        line="${line%%#*}"
+        line="${line//[[:space:]]/}"
+        line="${line,,}"
+        [[ -z "$line" ]] && continue
+        if [[ -z "${SEEN_DOMAINS[$line]:-}" ]]; then
+            SEEN_DOMAINS[$line]=1
+            ALLOWED_DOMAINS+=("$line")
+        fi
+    done < "$domain_file"
+done
 
-echo "Initializing firewall with domain whitelist..."
+echo "Initializing firewall with domain whitelist from:"
+if [ ${#DOMAIN_FILES[@]} -eq 0 ]; then
+    echo "  (no domain files; outbound traffic will be blocked except DNS/loopback/established connections)"
+else
+    printf '  - %s\n' "${DOMAIN_FILES[@]}"
+fi
 
 # Flush existing rules
 iptables -F OUTPUT 2>/dev/null || true
@@ -60,6 +98,10 @@ iptables -A OUTPUT -j LOG --log-prefix "BLOCKED: " --log-level 4
 iptables -A OUTPUT -j DROP
 
 echo "Firewall initialized. Allowed domains:"
-printf '  - %s\n' "${ALLOWED_DOMAINS[@]}"
+if [ ${#ALLOWED_DOMAINS[@]} -eq 0 ]; then
+    echo "  (none)"
+else
+    printf '  - %s\n' "${ALLOWED_DOMAINS[@]}"
+fi
 echo ""
 echo "Total IPs whitelisted: $(ipset list allowed_ips | grep -c '^[0-9]' || echo 0)"

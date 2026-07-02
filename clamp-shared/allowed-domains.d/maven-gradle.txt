@@ -1,0 +1,10 @@
+# Maven/Gradle repositories
+repo.maven.apache.org
+repo1.maven.org
+plugins.gradle.org
+services.gradle.org
+downloads.gradle.org
+repo.gradle.org
+jcenter.bintray.com
+dl.google.com
+maven.google.com

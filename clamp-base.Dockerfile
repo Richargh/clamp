@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables=1.8.9-2 \
     ipset=7.17-1 \
     iproute2=6.1.0-3 \
-    bind9-dnsutils=1:9.18.47-1~deb12u1 \
+    bind9-dnsutils \
     aggregate=1.6-7+b1 \
     git=1:2.39.5-0+deb12u* \
     jq=1.6-2.1+deb12u* \
@@ -67,9 +67,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
     && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME/.gradle
 
-# Copy startup scripts and shared config
+# Copy startup scripts. Project-specific .clamp/clamp.Dockerfile copies selected
 COPY startup-scripts/ /usr/local/bin/
-COPY --chown=$USERNAME:$USERNAME clamp-shared /opt/clamp-shared
 
 WORKDIR /workspace
 USER $USERNAME

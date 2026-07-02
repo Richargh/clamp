@@ -1,0 +1,3 @@
+# Playwright browser downloads
+cdn.playwright.dev
+playwright.download.prss.microsoft.com

@@ -1,6 +1,8 @@
 *
 !Dockerfile
 !init-firewall.sh
+!.clamp/
+!.clamp/**
 !claude-clamp-core/
 !claude-clamp-core/**
 !claude-clamp-workflows/

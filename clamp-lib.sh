@@ -217,15 +217,46 @@ clamp_log_config() {
 }
 
 clamp_create_project_dockerfile() {
-    local workspace project_dockerfile base_image
+    local workspace project_dockerfile base_image project_allowed_domains_dir default_allowed_domains_dir header_color text_color reset_color printed_project_setup
+
+    if [ -t 1 ]; then
+        header_color=$'\033[1;36m'
+        text_color=$'\033[90m'
+        reset_color=$'\033[0m'
+    else
+        header_color=""
+        text_color=""
+        reset_color=""
+    fi
+
+    printed_project_setup=false
 
     workspace="$1"
     project_dockerfile="$workspace/.clamp/clamp.Dockerfile"
+    project_allowed_domains_dir="$workspace/.clamp/allowed-domains.d"
+    default_allowed_domains_dir="$CLAMP_SCRIPT_DIR/clamp-shared/allowed-domains.d"
     base_image="clamp-${CLAMP_HARNESS}"
 
     mkdir -p "$workspace/.clamp"
 
+    if [ ! -d "$project_allowed_domains_dir" ]; then
+        mkdir -p "$project_allowed_domains_dir"
+        if [ -d "$default_allowed_domains_dir" ]; then
+            cp -a "$default_allowed_domains_dir/." "$project_allowed_domains_dir/"
+        fi
+        printf '%s[Clamp Project Setup]%s\n' "$header_color" "$reset_color"
+        printed_project_setup=true
+        printf '%s  Created allowed domains directory: %s%s\n' "$text_color" "$project_allowed_domains_dir" "$reset_color"
+        printf '%s  Review this directory and delete domain files this project should not allow.%s\n' "$text_color" "$reset_color"
+    fi
+
     if [ -f "$project_dockerfile" ]; then
+        if [ "$printed_project_setup" = false ]; then
+            printf '%s[Clamp Project Setup]%s\n' "$header_color" "$reset_color"
+            printed_project_setup=true
+        fi
+        printf '%s  Using project Dockerfile: %s%s\n' "$text_color" "$project_dockerfile" "$reset_color"
+        echo ""
         return
     fi
 
@@ -235,6 +266,8 @@ clamp_create_project_dockerfile() {
 FROM ${CLAMP_TOOL_IMAGE}
 
 ARG USERNAME=dev
+
+COPY .clamp/allowed-domains.d/ /opt/clamp-shared/allowed-domains.d/
 
 USER $USERNAME
 WORKDIR /workspace
@@ -249,7 +282,11 @@ RUN mise install -C /tmp
         fi
     } > "$project_dockerfile"
 
-    echo "Created project Dockerfile: $project_dockerfile"
+    if [ "$printed_project_setup" = false ]; then
+        printf '%s[Clamp Project Setup]%s\n' "$header_color" "$reset_color"
+    fi
+    printf '%s  Created project Dockerfile: %s%s\n' "$text_color" "$project_dockerfile" "$reset_color"
+    echo ""
 }
 
 clamp_build_image() {

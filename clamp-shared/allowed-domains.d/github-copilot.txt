@@ -1,0 +1,5 @@
+# GitHub Copilot
+api.githubcopilot.com
+githubcopilot.com
+copilot-proxy.githubusercontent.com
+copilot-telemetry.githubusercontent.com

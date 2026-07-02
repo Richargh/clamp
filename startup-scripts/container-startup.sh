@@ -34,11 +34,8 @@ fi
 # Credentials persist in the volume and are not overwritten
 if [ "$HARNESS" = "claude" ]; then
     cp -a /opt/claude-config/* /home/dev/.claude/
-    cp /opt/clamp-shared/allowed-domains.txt /home/dev/.claude/hooks/
 elif [ "$HARNESS" = "opencode" ]; then
     cp -a /opt/opencode-config/* /home/dev/.local/share/opencode/
-    mkdir -p /home/dev/.local/share/opencode/hooks
-    cp /opt/clamp-shared/allowed-domains.txt /home/dev/.local/share/opencode/hooks/
 fi
 
 # Copy workflows only when --add-workflows is set
@@ -52,13 +49,20 @@ fi
 
 if [ "$NO_FIREWALL" = true ]; then
     if [ "$HARNESS" = "claude" ]; then
-        # claude has a special firewall hook to give faster feedback why a domain does not work
-        # Swap to no-firewall hook and remove web permissions (no firewall = no restrictions)
-        sed -i 's|/firewall-preflight\.mjs|/no-firewall-preflight.mjs|g' /home/dev/.claude/settings.json
+        # Remove web permissions (no firewall = no restrictions)
         sed -i '/"WebFetch(domain:\*)",/d' /home/dev/.claude/settings.json
         sed -i '/"WebSearch"/d' /home/dev/.claude/settings.json
     fi
     # OpenCode: no special handling needed for no-firewall mode
 else
-    /usr/local/bin/init-firewall.sh /opt/clamp-shared/allowed-domains.txt
+    if ! find /opt/clamp-shared/allowed-domains.d -maxdepth 1 -type f -name '*.txt' 2>/dev/null | grep -q .; then
+        echo "No allowed-domain files found in /opt/clamp-shared/allowed-domains.d."
+        echo "The firewall will block outbound traffic except DNS, loopback, and established connections."
+        read -r -p "Continue? [y/N] " confirm
+        case "$confirm" in
+            [yY]|[yY][eE][sS]) ;;
+            *) echo "Startup cancelled."; exit 1 ;;
+        esac
+    fi
+    /usr/local/bin/init-firewall.sh /opt/clamp-shared/allowed-domains.d
 fi

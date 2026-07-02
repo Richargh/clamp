@@ -1,0 +1,4 @@
+# Anthropic API
+api.anthropic.com
+sentry.io
+statsig.anthropic.com

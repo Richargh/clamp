@@ -12,29 +12,26 @@ Claude Clamp has three main customization points:
 
 == Editing Allowed Domains
 
-The allowed domains whitelist controls both:
-
-* Network firewall (iptables rules)
-* WebFetch hook validation
+The allowed domains whitelist controls the network firewall (iptables rules).
 
 === Domain File Location
 
-Edit `claude-clamp-core/hooks/allowed-domains.txt`:
+Allowed domains are project-specific. On first run, Clamp creates:
+
+* `.clamp/allowed-domains.d/` - copied from Clamp's default domain-file templates
+* `.clamp/clamp.Dockerfile` - copies only this project's `.clamp/allowed-domains.d/*.txt` into the image
+
+Review `.clamp/allowed-domains.d/` and delete files that this project should not allow. Add project-specific files there as needed:
 
 [source,text]
 ----
-# Allowed domains for Claude Code container
-# Used by both the firewall (init-firewall.sh) and fetch hook
-
-# Anthropic API (required)
-api.anthropic.com
-sentry.io
-statsig.anthropic.com
-
+# .clamp/allowed-domains.d/my-project.txt
 # Your custom domains
 your-api.example.com
 docs.your-company.com
 ----
+
+Only `*.txt` files in the project's `.clamp/allowed-domains.d/` directory are applied at startup.
 
 === Format
 
@@ -271,7 +268,6 @@ You can chain multiple hooks for the same tool:
       {
         "matcher": "WebFetch",
         "hooks": [
-          {"type": "command", "command": "/home/dev/.claude/hooks/fetch/firewall-preflight.mjs"},
           {"type": "command", "command": "/home/dev/.claude/hooks/fetch/block-base64-urls.mjs"},
           {"type": "command", "command": "/home/dev/.claude/hooks/my-custom-hook.mjs"}
         ]

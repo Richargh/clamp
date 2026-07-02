@@ -8,7 +8,6 @@
       {
         "matcher": "WebFetch",
         "hooks": [
-          {"type": "command", "command": "/home/dev/.claude/hooks/fetch/firewall-preflight.mjs"},
           {"type": "command", "command": "/home/dev/.claude/hooks/fetch/block-base64-urls.mjs"}
         ]
       },
