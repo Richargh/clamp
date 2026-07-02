@@ -331,12 +331,16 @@ clamp_build_image() {
 }
 
 clamp_run() {
-    local workspace container_name project_name project_key config_volume startup_opts cap_opts final_cmd workflows_enabled
+    local workspace container_name project_name project_key config_volume startup_opts cap_opts proxy_env final_cmd workflows_enabled session_log_dir session_log_file session_log_container
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
     container_name="${CLAMP_VOLUME_PREFIX}-$(date +%Y%m%d-%H%M%S)"
     project_name=$(basename "$workspace")
     project_key="$(printf '%s' "$workspace" | cksum | awk '{print $1}')"
+    session_log_dir="$workspace/.clamp/sessions"
+    session_log_file="$session_log_dir/$(date +%Y%m%d-%H%M%S)-network.log"
+    session_log_container="/workspace/.clamp/sessions/${session_log_file##*/}"
+    mkdir -p "$session_log_dir"
 
     # Determine config volume name based on auth policy
     if [ "$CLAMP_PER_PROJECT_AUTH" = true ]; then
@@ -350,8 +354,10 @@ clamp_run() {
     if [ "$CLAMP_NO_FIREWALL" = true ]; then
         startup_opts="$startup_opts --no-firewall"
         cap_opts=""
+        proxy_env=""
     else
         cap_opts="--cap-add=NET_ADMIN"
+        proxy_env="-e HTTP_PROXY=http://127.0.0.1:8888 -e HTTPS_PROXY=http://127.0.0.1:8888 -e http_proxy=http://127.0.0.1:8888 -e https_proxy=http://127.0.0.1:8888 -e NO_PROXY=localhost,127.0.0.1,::1 -e no_proxy=localhost,127.0.0.1,::1"
     fi
 
     # Check workflows environment variable
@@ -372,6 +378,7 @@ clamp_run() {
     # Run with:
     # - delegated mount for macOS performance
     # - tmpfs over /workspace/.clamp so containerized agents cannot see Clamp's project config
+    # - bind mount only /workspace/.clamp/sessions back to the host for session logs
     # - Named volumes for heavy I/O directories (build artifacts, caches)
     # - Credential volumes (config copied fresh from image on each start)
     # - NET_ADMIN capability for firewall (unless --no-firewall)
@@ -380,13 +387,16 @@ clamp_run() {
     docker run -it --rm \
         --name "$container_name" \
         $cap_opts \
+        ${proxy_env:+$proxy_env} \
         -v "$workspace:/workspace:delegated" \
         --tmpfs /workspace/.clamp:rw,noexec,nosuid,nodev,mode=700 \
+        -v "$session_log_dir:/workspace/.clamp/sessions" \
         -v "${project_name}-node-modules:/workspace/node_modules" \
         -v "${project_name}-gradle-build:/workspace/build" \
         -v "${project_name}-gradle-cache:/home/dev/.gradle" \
         -v "${config_volume}:${CLAMP_CONFIG_DIR}" \
         -e "${CLAMP_CONFIG_ENV}=${CLAMP_CONFIG_DIR}" \
+        -e "CLAMP_BLOCKED_LOG_FILE=$session_log_container" \
         "$CLAMP_IMAGE_NAME" \
         bash -c "sudo /usr/local/bin/container-startup.sh $startup_opts && $final_cmd"
 }

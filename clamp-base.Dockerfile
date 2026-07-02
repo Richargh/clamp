@@ -62,6 +62,7 @@ ENV HOME=/home/$USERNAME \
 # Create non-root user and workspace
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && useradd --system --gid $USER_GID --no-create-home --shell /usr/sbin/nologin clamp-proxy \
     && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/container-startup.sh" > /etc/sudoers.d/$USERNAME \
     && chmod u=r,g=r,o= /etc/sudoers.d/$USERNAME \
     && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
