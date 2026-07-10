@@ -12,15 +12,41 @@ set -e
 # Rules are automatically loaded as project memory when launched
 ## https://code.claude.com/docs/en/memory
 
-# Parse options
+# Parse startup options. Arguments after -- are the coding-agent command to run
+# as the unprivileged container user.
+if [ -z "${CLAMP_CONTAINER_USER:-}" ]; then
+    echo "Error: CLAMP_CONTAINER_USER must be set" >&2
+    exit 1
+fi
+USER_ENTRY="$(getent passwd "$CLAMP_CONTAINER_USER")"
+if [ -z "$USER_ENTRY" ]; then
+    echo "Error: user '$CLAMP_CONTAINER_USER' does not exist" >&2
+    exit 1
+fi
+IFS=: read -r _user_name _password _uid _gid _gecos CLAMP_CONTAINER_HOME _shell <<< "$USER_ENTRY"
+if [ -z "$CLAMP_CONTAINER_HOME" ]; then
+    echo "Error: user '$CLAMP_CONTAINER_USER' has no home directory" >&2
+    exit 1
+fi
+
 NO_FIREWALL=false
 ADD_WORKFLOWS=false
 HARNESS=""
-for arg in "$@"; do
-    case $arg in
-        --no-firewall) NO_FIREWALL=true ;;
-        --add-workflows) ADD_WORKFLOWS=true ;;
-        --harness=*) HARNESS="${arg#--harness=}" ;;
+AGENT_CMD=()
+while [ $# -gt 0 ]; do
+    case $1 in
+        --no-firewall) NO_FIREWALL=true; shift ;;
+        --add-workflows) ADD_WORKFLOWS=true; shift ;;
+        --harness=*) HARNESS="${1#--harness=}"; shift ;;
+        --)
+            shift
+            AGENT_CMD=("$@")
+            break
+            ;;
+        *)
+            echo "Error: unknown startup option '$1'"
+            exit 1
+            ;;
     esac
 done
 
@@ -33,15 +59,15 @@ fi
 # Copy fresh config from template based on harness (settings and hooks)
 # Credentials persist in the volume and are not overwritten
 if [ "$HARNESS" = "claude" ]; then
-    cp -a /opt/claude-config/* /home/dev/.claude/
+    cp -a /opt/claude-config/* "$CLAMP_CONTAINER_HOME/.claude/"
 elif [ "$HARNESS" = "opencode" ]; then
-    cp -a /opt/opencode-config/* /home/dev/.local/share/opencode/
+    cp -a /opt/opencode-config/* "$CLAMP_CONTAINER_HOME/.local/share/opencode/"
 fi
 
 # Copy workflows only when --add-workflows is set
 if [ "$ADD_WORKFLOWS" = true ]; then
     if [ "$HARNESS" = "claude" ]; then
-        cp -a /opt/claude-workflows/* /home/dev/.claude/
+        cp -a /opt/claude-workflows/* "$CLAMP_CONTAINER_HOME/.claude/"
         WORKFLOW_COUNT=$(find /opt/claude-workflows -type f | wc -l)
         echo "Added $WORKFLOW_COUNT workflow files from container image"
     fi
@@ -50,8 +76,8 @@ fi
 if [ "$NO_FIREWALL" = true ]; then
     if [ "$HARNESS" = "claude" ]; then
         # Remove web permissions (no firewall = no restrictions)
-        sed -i '/"WebFetch(domain:\*)",/d' /home/dev/.claude/settings.json
-        sed -i '/"WebSearch"/d' /home/dev/.claude/settings.json
+        sed -i '/"WebFetch(domain:\*)",/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
+        sed -i '/"WebSearch"/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
     fi
     # OpenCode: no special handling needed for no-firewall mode
 else
@@ -66,3 +92,22 @@ else
     fi
     /usr/local/bin/init-firewall.sh /opt/clamp-shared/allowed-domains.d
 fi
+
+if [ ${#AGENT_CMD[@]} -eq 0 ]; then
+    exit 0
+fi
+
+# Permanently hand off to the coding agent as the container user. Remove
+# inheritable/ambient capabilities and remove NET_ADMIN from the bounding set so
+# the agent and its children cannot alter the firewall even though the container
+# needed NET_ADMIN during startup.
+exec setpriv \
+    --reuid="$CLAMP_CONTAINER_USER" \
+    --regid="$CLAMP_CONTAINER_USER" \
+    --init-groups \
+    --inh-caps=-all \
+    --ambient-caps=-all \
+    --bounding-set=-net_admin \
+    --reset-env \
+    -- \
+    env HOME="$CLAMP_CONTAINER_HOME" USER="$CLAMP_CONTAINER_USER" LOGNAME="$CLAMP_CONTAINER_USER" PATH="$PATH" "${AGENT_CMD[@]}"

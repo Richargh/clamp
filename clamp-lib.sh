@@ -17,6 +17,11 @@
 CLAMP_BASE_IMAGE_NAME="clamp-base"
 CLAMP_IMAGE_NAME=""
 
+# Unprivileged user inside the Clamp images. Wrappers derive config paths from
+# this value and pass it into the container; startup scripts fail if it is not
+# present in the container environment.
+CLAMP_CONTAINER_USER="dev"
+
 # Parsed argument flags (set by clamp_parse_args)
 CLAMP_REBUILD=false
 CLAMP_NO_CACHE=""
@@ -256,6 +261,10 @@ clamp_create_project_dockerfile() {
             printed_project_setup=true
         fi
         printf '%s  Using project Dockerfile: %s%s\n' "$text_color" "$project_dockerfile" "$reset_color"
+        if [ -f "$workspace/mise.toml" ] && ! grep -q 'mise install -C /tmp' "$project_dockerfile"; then
+            printf '%s  Note: mise.toml exists, but this Dockerfile does not install mise tools.%s\n' "$text_color" "$reset_color"
+            printf '%s  Add the mise install block to the Dockerfile, or delete it to regenerate.%s\n' "$text_color" "$reset_color"
+        fi
         echo ""
         return
     fi
@@ -331,7 +340,8 @@ clamp_build_image() {
 }
 
 clamp_run() {
-    local workspace container_name project_name project_key config_volume startup_opts cap_opts proxy_env final_cmd workflows_enabled session_log_dir session_log_file session_log_container
+    local workspace container_name project_name project_key config_volume cap_opts proxy_env final_cmd workflows_enabled session_log_dir session_log_file session_log_container
+    local startup_args
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
     container_name="${CLAMP_VOLUME_PREFIX}-$(date +%Y%m%d-%H%M%S)"
@@ -350,9 +360,9 @@ clamp_run() {
     fi
 
     # Set startup options based on flags
-    startup_opts="--harness=${CLAMP_HARNESS}"
+    startup_args=("--harness=${CLAMP_HARNESS}")
     if [ "$CLAMP_NO_FIREWALL" = true ]; then
-        startup_opts="$startup_opts --no-firewall"
+        startup_args+=("--no-firewall")
         cap_opts=""
         proxy_env=""
     else
@@ -363,7 +373,7 @@ clamp_run() {
     # Check workflows environment variable
     workflows_enabled="${!CLAMP_WORKFLOWS_ENV:-false}"
     if [ "$workflows_enabled" = true ]; then
-        startup_opts="$startup_opts --add-workflows"
+        startup_args+=("--add-workflows")
     fi
 
     # Set final command based on --shell and --danger flags
@@ -381,11 +391,15 @@ clamp_run() {
     # - bind mount only /workspace/.clamp/sessions back to the host for session logs
     # - Named volumes for heavy I/O directories (build artifacts, caches)
     # - Credential volumes (config copied fresh from image on each start)
-    # - NET_ADMIN capability for firewall (unless --no-firewall)
+    # - startup runs as root, then container-startup.sh execs the agent as dev
+    # - NET_ADMIN capability for firewall setup/DNS ipset updates (unless --no-firewall)
+    # - no-new-privileges prevents the dev agent from gaining privileges later
     # - Interactive TTY
     # - Auto-remove on exit
     docker run -it --rm \
         --name "$container_name" \
+        --user root \
+        --security-opt no-new-privileges \
         $cap_opts \
         ${proxy_env:+$proxy_env} \
         -v "$workspace:/workspace:delegated" \
@@ -396,9 +410,10 @@ clamp_run() {
         -v "${project_name}-gradle-cache:/home/dev/.gradle" \
         -v "${config_volume}:${CLAMP_CONFIG_DIR}" \
         -e "${CLAMP_CONFIG_ENV}=${CLAMP_CONFIG_DIR}" \
+        -e "CLAMP_CONTAINER_USER=$CLAMP_CONTAINER_USER" \
         -e "CLAMP_BLOCKED_LOG_FILE=$session_log_container" \
         "$CLAMP_IMAGE_NAME" \
-        bash -c "sudo /usr/local/bin/container-startup.sh $startup_opts && $final_cmd"
+        /usr/local/bin/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"
 }
 
 clamp_main() {

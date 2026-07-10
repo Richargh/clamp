@@ -10,9 +10,24 @@
 
 set -e
 
+if [ -z "${CLAMP_CONTAINER_USER:-}" ]; then
+    echo "Error: CLAMP_CONTAINER_USER must be set" >&2
+    exit 1
+fi
+USER_ENTRY="$(getent passwd "$CLAMP_CONTAINER_USER")"
+if [ -z "$USER_ENTRY" ]; then
+    echo "Error: user '$CLAMP_CONTAINER_USER' does not exist" >&2
+    exit 1
+fi
+IFS=: read -r _user_name _password _uid _gid _gecos CLAMP_CONTAINER_HOME _shell <<< "$USER_ENTRY"
+if [ -z "$CLAMP_CONTAINER_HOME" ]; then
+    echo "Error: user '$CLAMP_CONTAINER_USER' has no home directory" >&2
+    exit 1
+fi
+
 DOMAIN_SOURCES=("$@")
 if [ ${#DOMAIN_SOURCES[@]} -eq 0 ]; then
-    DOMAIN_SOURCES=("/home/dev/.claude/hooks/allowed-domains.d" "/home/dev/.claude/hooks/allowed-domains.txt")
+    DOMAIN_SOURCES=("$CLAMP_CONTAINER_HOME/.claude/hooks/allowed-domains.d" "$CLAMP_CONTAINER_HOME/.claude/hooks/allowed-domains.txt")
 fi
 
 DOMAIN_FILES=()
@@ -140,9 +155,9 @@ echo $! > "$DNS_PID_FILE"
 
 # Start the HTTP(S) proxy as an unprivileged user. This is the only user allowed
 # to reach whitelisted HTTP(S) IPs externally.
-# shellcheck disable=SC2024,SC2094 # Redirection is intentionally opened by root; proxy writes logs to stdout.
+# shellcheck disable=SC2094 # Proxy writes logs to stdout; root-owned shell redirects to the log file.
 CLAMP_BLOCKED_LOG_FILE="$BLOCKED_LOG_FILE" CLAMP_LOG_STDOUT=1 \
-    sudo -u clamp-proxy -E /opt/node/bin/node /usr/local/bin/clamp-http-proxy.mjs "${DOMAIN_FILES[@]}" \
+    runuser -u clamp-proxy --preserve-environment -- /opt/node/bin/node /usr/local/bin/clamp-http-proxy.mjs "${DOMAIN_FILES[@]}" \
         >> "$BLOCKED_LOG_FILE" 2>&1 &
 echo $! > "$PROXY_PID_FILE"
 
@@ -159,4 +174,5 @@ echo "Local DNS firewall: 127.0.0.1:53"
 echo "Local HTTP(S) proxy: http://127.0.0.1:8888"
 echo "Blocked domain/network log: $BLOCKED_LOG_FILE"
 echo "Upstream DNS: $UPSTREAM_DNS"
-echo "Total IPs currently whitelisted: $(ipset list allowed_ips | grep -c '^[0-9]' || echo 0)"
+WHITELISTED_IP_COUNT="$(ipset list allowed_ips 2>/dev/null | grep -c '^[0-9]' || true)"
+echo "Total IPs currently whitelisted: ${WHITELISTED_IP_COUNT:-0}"

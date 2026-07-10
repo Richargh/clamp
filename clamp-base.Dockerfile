@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     aggregate=1.6-7+b1 \
     git=1:2.39.5-0+deb12u* \
     jq=1.6-2.1+deb12u* \
-    sudo=1.9.13p3-1+deb12u* \
     procps=2:4.0.2-3 \
     zip=3.0-13 \
     unzip=6.0-28 \
@@ -57,16 +56,14 @@ RUN export MISE_YES=1 MISE_DATA_DIR=/opt/mise MISE_CONFIG_DIR=/etc/mise MISE_CAC
     && ln -s "$(mise where node@${NODE_VERSION})" /opt/node
 
 ENV HOME=/home/$USERNAME \
-    PATH=/opt/node/bin:$PATH
+    PATH=/home/$USERNAME/.local/share/mise/shims:/opt/node/bin:$PATH
 
 # Create non-root user and workspace
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && useradd --system --gid $USER_GID --no-create-home --shell /usr/sbin/nologin clamp-proxy \
-    && echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/container-startup.sh" > /etc/sudoers.d/$USERNAME \
-    && chmod u=r,g=r,o= /etc/sudoers.d/$USERNAME \
     && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
-    && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME/.gradle
+    && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME
 
 # Copy startup scripts. Project-specific .clamp/clamp.Dockerfile copies selected
 COPY startup-scripts/ /usr/local/bin/

@@ -10,7 +10,7 @@ source "$CLAMP_SCRIPT_DIR/clamp-lib.sh"
 # OpenCode specific settings
 CLAMP_TOOL_NAME="OpenCode"
 CLAMP_VOLUME_PREFIX="opencode-clamp"
-CLAMP_CONFIG_DIR="/home/dev/.local/share/opencode"
+CLAMP_CONFIG_DIR="/home/${CLAMP_CONTAINER_USER}/.local/share/opencode"
 CLAMP_CONFIG_ENV="OPENCODE_CONFIG_DIR"
 CLAMP_COMMAND="opencode"
 CLAMP_DANGER_FLAG=""  # OpenCode equivalent TBD

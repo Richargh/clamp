@@ -5,7 +5,7 @@ ARG OPENCODE_VERSION=1.2.27
 ARG USERNAME=dev
 
 USER root
-RUN npm install -g opencode-ai@${OPENCODE_VERSION}
+RUN HOME=/root npm install -g opencode-ai@${OPENCODE_VERSION}
 
 ENV OPENCODE_DISABLE_AUTOUPDATE=1
 

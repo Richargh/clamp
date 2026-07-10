@@ -1,0 +1,2 @@
+# mise runtime metadata
+mise-versions.jdx.dev
