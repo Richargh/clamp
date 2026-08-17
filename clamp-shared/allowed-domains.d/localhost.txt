@@ -1,0 +1,3 @@
+# Localhost
+## for subscription login to work
+localhost
