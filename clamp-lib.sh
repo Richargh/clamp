@@ -443,7 +443,7 @@ clamp_run() {
         docker_run_status=$?
     fi
 
-    "$CLAMP_SCRIPT_DIR/clamp-shutdown.sh" "$workspace" || true
+    "$CLAMP_SCRIPT_DIR/shutdown-scripts/clamp-shutdown.sh" "$workspace" || true
     return "$docker_run_status"
 }
 

@@ -18,8 +18,10 @@
 
 !startup-scripts/
 !startup-scripts/**
-!.dockerignore
+!shutdown-scripts/
+!shutdown-scripts/**
 
+!.dockerignore
 !.gitignore
 
 !clamp-claude.sh
@@ -27,7 +29,6 @@
 !clamp-pi.sh
 !clamp-lib.sh
 !clamp-cleanup.sh
-!clamp-shutdown.sh
 
 !.github
 !.github/**
