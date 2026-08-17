@@ -1,0 +1,17 @@
+= Changelog
+
+This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog] and uses link:https://semver.org/spec/v2.0.0.html[Semantic Versioning].
+
+== Unreleased
+
+== 0.1.0 - 2026-08-17
+
+=== Added
+
+* Containerized harnesses for Claude Code, OpenCode, and Pi.
+* Per-project Docker images and configurable `.clamp/clamp.Dockerfile` files.
+* Global or per-project authentication volumes.
+* Allowlisted network access through local DNS and HTTP proxies.
+* Network session logging and shutdown summaries.
+* Non-root agent execution with restricted privilege escalation.
+* Project-selectable allowed-domain files and bundled Claude workflows.

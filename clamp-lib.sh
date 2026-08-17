@@ -37,8 +37,9 @@ CLAMP_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/clamp"
 CLAMP_AUTH_CONFIG="$CLAMP_CONFIG_HOME/auth-projects.tsv"
 
 clamp_usage() {
-    echo "Usage: $(basename "$0") [-h|--help] [--rebuild] [--no-cache] [--per-project-auth] [--no-firewall] [--danger] [--shell] <folder>"
+    echo "Usage: $(basename "$0") [-h|--help] [-v|--version] [--rebuild] [--no-cache] [--per-project-auth] [--no-firewall] [--danger] [--shell] <folder>"
     echo "  -h, --help: Show this help message"
+    echo "  -v, --version: Show the Clamp version"
     echo "  --rebuild: Force rebuild of the Docker image"
     echo "  --no-cache: Rebuild without Docker layer cache"
     echo "  --per-project-auth: Use separate credentials for this project"
@@ -82,6 +83,14 @@ clamp_parse_args() {
                 ;;
             -h|--help)
                 clamp_usage
+                exit 0
+                ;;
+            -v|--version)
+                if [ ! -r "$CLAMP_SCRIPT_DIR/VERSION" ]; then
+                    echo "Missing version file: $CLAMP_SCRIPT_DIR/VERSION" >&2
+                    exit 1
+                fi
+                printf 'Clamp %s (%s)\n' "$(head -n 1 "$CLAMP_SCRIPT_DIR/VERSION")" "$CLAMP_TOOL_NAME"
                 exit 0
                 ;;
             -*)
