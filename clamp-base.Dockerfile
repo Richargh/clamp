@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables=1.8.9-2 \
     ipset=7.17-1 \
     iproute2=6.1.0-3 \
-    bind9-dnsutils=1:9.18.49-1~deb12u1 \
+    bind9-dnsutils=1:9.18.49-1~deb12u2 \
     aggregate=1.6-7+b1 \
     fd-find=8.6.0-3 \
     git=1:2.39.5-0+deb12u* \
