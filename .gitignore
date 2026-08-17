@@ -27,6 +27,7 @@
 !clamp-pi.sh
 !clamp-lib.sh
 !clamp-cleanup.sh
+!clamp-shutdown.sh
 
 !.github
 !.github/**

@@ -359,7 +359,7 @@ clamp_detect_timezone() {
 
 clamp_run() {
     local workspace container_name project_name project_key config_volume cap_opts proxy_env timezone final_cmd workflows_enabled session_log_dir session_log_file session_log_container
-    local startup_args
+    local startup_args docker_run_status
     local -a timezone_env=()
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
@@ -419,7 +419,7 @@ clamp_run() {
     # - no-new-privileges prevents the dev agent from gaining privileges later
     # - Interactive TTY
     # - Auto-remove on exit
-    docker run -it --rm \
+    if docker run -it --rm \
         --name "$container_name" \
         --user root \
         --security-opt no-new-privileges \
@@ -437,7 +437,14 @@ clamp_run() {
         -e "CLAMP_CONTAINER_USER=$CLAMP_CONTAINER_USER" \
         -e "CLAMP_BLOCKED_LOG_FILE=$session_log_container" \
         "$CLAMP_IMAGE_NAME" \
-        /usr/local/bin/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"
+        /usr/local/bin/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"; then
+        docker_run_status=0
+    else
+        docker_run_status=$?
+    fi
+
+    "$CLAMP_SCRIPT_DIR/clamp-shutdown.sh" "$workspace" || true
+    return "$docker_run_status"
 }
 
 clamp_main() {
