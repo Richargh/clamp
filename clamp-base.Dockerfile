@@ -12,9 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iproute2=6.1.0-3 \
     bind9-dnsutils=1:9.18.49-1~deb12u1 \
     aggregate=1.6-7+b1 \
+    fd-find=8.6.0-3 \
     git=1:2.39.5-0+deb12u* \
     jq=1.6-2.1+deb12u* \
     procps=2:4.0.2-3 \
+    ripgrep=13.0.0-4+b2 \
     zip=3.0-13 \
     unzip=6.0-28 \
     libglib2.0-0=2.74.6-2+deb12u* \
@@ -34,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2=1.16.0-7 \
     libpango-1.0-0=1.50.12+ds-1 \
     shellcheck=0.9.0-1 \
+    && ln -s /usr/bin/fdfind /usr/local/bin/fd \
     && HADOLINT_ARCH="$(dpkg --print-architecture)" \
     && if [ "$HADOLINT_ARCH" = "amd64" ]; then HADOLINT_ARCH="x86_64"; fi \
     && curl -fsSL "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-${HADOLINT_ARCH}" -o /usr/local/bin/hadolint \
