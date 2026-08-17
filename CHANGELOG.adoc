@@ -4,6 +4,17 @@ This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog]
 
 == Unreleased
 
+== 0.2.0 - 2026-08-17
+
+=== Added
+
+* Apple `container` CLI support through the new `--runtime docker|container` option; Docker remains the default.
+* Configurable DNS for Apple container builds and sessions through `CLAMP_CONTAINER_DNS`.
+
+=== Fixed
+
+* Writable named-volume ownership when Apple `container` creates volumes owned by root.
+
 == 0.1.0 - 2026-08-17
 
 === Added
