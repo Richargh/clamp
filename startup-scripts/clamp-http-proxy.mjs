@@ -2,6 +2,7 @@
 import http from 'node:http';
 import net from 'node:net';
 import fs from 'node:fs';
+import { localNow } from './local-time.mjs';
 
 const listenHost = process.env.CLAMP_PROXY_LISTEN_HOST || '127.0.0.1';
 const listenPort = Number(process.env.CLAMP_PROXY_LISTEN_PORT || '8888');
@@ -9,7 +10,7 @@ const logFile = process.env.CLAMP_PROXY_LOG_FILE || process.env.CLAMP_BLOCKED_LO
 const domainFiles = process.argv.slice(2);
 
 function log(line) {
-  const entry = `${new Date().toISOString()} ${line}\n`;
+  const entry = `${localNow()} ${line}\n`;
   if (process.env.CLAMP_LOG_STDOUT === '1') process.stdout.write(entry);
   else fs.appendFileSync(logFile, entry);
 }

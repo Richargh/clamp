@@ -2,6 +2,7 @@
 import dgram from 'node:dgram';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { localNow } from './local-time.mjs';
 
 const listenHost = process.env.CLAMP_DNS_LISTEN_HOST || '127.0.0.1';
 const listenPort = Number(process.env.CLAMP_DNS_LISTEN_PORT || '53');
@@ -11,7 +12,7 @@ const logFile = process.env.CLAMP_BLOCKED_DOMAIN_LOG_FILE || process.env.CLAMP_B
 const domainFiles = process.argv.slice(2);
 
 function log(line) {
-  fs.appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`);
+  fs.appendFileSync(logFile, `${localNow()} ${line}\n`);
 }
 
 function loadAllowed(files) {

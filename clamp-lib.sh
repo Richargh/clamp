@@ -339,9 +339,28 @@ clamp_build_image() {
     docker build $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_dockerfile" -t "$project_image_name" "$workspace"
 }
 
+clamp_detect_timezone() {
+    local timezone="${TZ:-}"
+
+    if [ -z "$timezone" ] && [ -r /etc/timezone ]; then
+        timezone="$(head -n 1 /etc/timezone)"
+    fi
+
+    if [ -z "$timezone" ] && [ -L /etc/localtime ]; then
+        timezone="$(readlink /etc/localtime | sed 's|^.*zoneinfo/||')"
+    fi
+
+    if [[ ! "$timezone" =~ ^[A-Za-z0-9_+./-]+$ ]]; then
+        return 1
+    else
+        printf '%s\n' "$timezone"
+    fi
+}
+
 clamp_run() {
-    local workspace container_name project_name project_key config_volume cap_opts proxy_env final_cmd workflows_enabled session_log_dir session_log_file session_log_container
+    local workspace container_name project_name project_key config_volume cap_opts proxy_env timezone final_cmd workflows_enabled session_log_dir session_log_file session_log_container
     local startup_args
+    local -a timezone_env=()
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
     container_name="${CLAMP_VOLUME_PREFIX}-$(date +%Y%m%d-%H%M%S)"
@@ -370,6 +389,10 @@ clamp_run() {
         proxy_env="-e HTTP_PROXY=http://127.0.0.1:8888 -e HTTPS_PROXY=http://127.0.0.1:8888 -e http_proxy=http://127.0.0.1:8888 -e https_proxy=http://127.0.0.1:8888 -e NO_PROXY=localhost,127.0.0.1,::1 -e no_proxy=localhost,127.0.0.1,::1"
     fi
 
+    # Keep container-side session log timestamps in the host's local time.
+    if timezone="$(clamp_detect_timezone)"; then
+        timezone_env=(-e "TZ=$timezone")
+    fi
     # Check workflows environment variable
     workflows_enabled="${!CLAMP_WORKFLOWS_ENV:-false}"
     if [ "$workflows_enabled" = true ]; then
@@ -402,6 +425,7 @@ clamp_run() {
         --security-opt no-new-privileges \
         $cap_opts \
         ${proxy_env:+$proxy_env} \
+        "${timezone_env[@]}" \
         -v "$workspace:/workspace:delegated" \
         --tmpfs /workspace/.clamp:rw,noexec,nosuid,nodev,mode=700 \
         -v "$session_log_dir:/workspace/.clamp/sessions" \
