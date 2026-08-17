@@ -28,6 +28,34 @@ if [ -z "$CLAMP_CONTAINER_HOME" ]; then
     echo "Error: user '$CLAMP_CONTAINER_USER' has no home directory" >&2
     exit 1
 fi
+if [ -z "${CLAMP_CONFIG_DIR:-}" ]; then
+    echo "Error: CLAMP_CONFIG_DIR must be set" >&2
+    exit 1
+fi
+case "$CLAMP_CONFIG_DIR" in
+    "$CLAMP_CONTAINER_HOME"/*) ;;
+    *)
+        echo "Error: CLAMP_CONFIG_DIR must be inside $CLAMP_CONTAINER_HOME" >&2
+        exit 1
+        ;;
+esac
+
+# Docker initializes a new named volume from the image directory, preserving its
+# owner. Apple's container CLI creates an empty root-owned volume instead. Make
+# every writable named-volume mount usable by the unprivileged coding-agent user.
+for writable_dir in \
+    "$CLAMP_CONFIG_DIR" \
+    /workspace/node_modules \
+    /workspace/build \
+    "$CLAMP_CONTAINER_HOME/.gradle"
+do
+    if [ -L "$writable_dir" ]; then
+        echo "Error: writable volume path must not be a symlink: $writable_dir" >&2
+        exit 1
+    fi
+    mkdir -p "$writable_dir"
+    chown --no-dereference "$_uid:$_gid" "$writable_dir"
+done
 
 NO_FIREWALL=false
 ADD_WORKFLOWS=false

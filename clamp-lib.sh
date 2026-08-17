@@ -31,17 +31,19 @@ CLAMP_NO_FIREWALL=false
 CLAMP_DANGER_MODE=false
 CLAMP_SHELL_MODE=false
 CLAMP_FOLDER=""
+CLAMP_RUNTIME="docker"
 
 # User config
 CLAMP_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/clamp"
 CLAMP_AUTH_CONFIG="$CLAMP_CONFIG_HOME/auth-projects.tsv"
 
 clamp_usage() {
-    echo "Usage: $(basename "$0") [-h|--help] [-v|--version] [--rebuild] [--no-cache] [--per-project-auth] [--no-firewall] [--danger] [--shell] <folder>"
+    echo "Usage: $(basename "$0") [-h|--help] [-v|--version] [--runtime docker|container] [--rebuild] [--no-cache] [--per-project-auth] [--no-firewall] [--danger] [--shell] <folder>"
     echo "  -h, --help: Show this help message"
     echo "  -v, --version: Show the Clamp version"
-    echo "  --rebuild: Force rebuild of the Docker image"
-    echo "  --no-cache: Rebuild without Docker layer cache"
+    echo "  --rebuild: Force rebuild of the container images"
+    echo "  --no-cache: Rebuild without the image layer cache"
+    echo "  --runtime: Container runtime to use: docker (default) or container (Apple container CLI)"
     echo "  --per-project-auth: Use separate credentials for this project"
     echo "  --no-firewall: Disable the network firewall (allow all outbound traffic). Useful for constrained research."
     echo "  --danger: Run ${CLAMP_TOOL_NAME} with auto-accept permissions (no confirmations)"
@@ -50,6 +52,7 @@ clamp_usage() {
     echo ""
     echo "Environment variables:"
     echo "  ${CLAMP_WORKFLOWS_ENV}: Set to 'true' to copy bundled workflows into container"
+    echo "  CLAMP_CONTAINER_DNS: DNS server for Apple container builds/runs (default: 1.1.1.1)"
 }
 
 clamp_parse_args() {
@@ -62,6 +65,18 @@ clamp_parse_args() {
             --no-cache)
                 CLAMP_REBUILD=true
                 CLAMP_NO_CACHE="--no-cache"
+                shift
+                ;;
+            --runtime)
+                if [ $# -lt 2 ]; then
+                    echo "Missing value for --runtime" >&2
+                    exit 1
+                fi
+                CLAMP_RUNTIME="$2"
+                shift 2
+                ;;
+            --runtime=*)
+                CLAMP_RUNTIME="${1#*=}"
                 shift
                 ;;
             --per-project-auth)
@@ -107,6 +122,19 @@ clamp_parse_args() {
 
     if [ -z "$CLAMP_FOLDER" ]; then
         clamp_usage
+        exit 1
+    fi
+
+    case "$CLAMP_RUNTIME" in
+        docker|container) ;;
+        *)
+            echo "Unsupported runtime: $CLAMP_RUNTIME (expected docker or container)" >&2
+            exit 1
+            ;;
+    esac
+
+    if ! command -v "$CLAMP_RUNTIME" >/dev/null 2>&1; then
+        echo "Container runtime not found: $CLAMP_RUNTIME" >&2
         exit 1
     fi
 }
@@ -197,7 +225,7 @@ clamp_resolve_auth_policy() {
 }
 
 clamp_log_config() {
-    local auth firewall header_color text_color reset_color
+    local auth firewall runtime header_color text_color reset_color
 
     if [ -t 1 ]; then
         header_color=$'\033[1;36m'
@@ -221,11 +249,18 @@ clamp_log_config() {
         firewall="On"
     fi
 
+    if [ "$CLAMP_RUNTIME" = container ]; then
+        runtime="Apple container"
+    else
+        runtime="Docker"
+    fi
+
     printf '%s[Clamp User Config]%s\n' "$header_color" "$reset_color"
     printf '%s  Auth: %s%s\n' "$text_color" "$auth" "$reset_color"
     echo ""
     printf '%s[Clamp CLI Config]%s\n' "$header_color" "$reset_color"
     printf '%s  Coding Agent: %s%s\n' "$text_color" "$CLAMP_TOOL_NAME" "$reset_color"
+    printf '%s  Runtime: %s%s\n' "$text_color" "$runtime" "$reset_color"
     printf '%s  Firewall: %s%s\n' "$text_color" "$firewall" "$reset_color"
     echo ""
 }
@@ -309,6 +344,7 @@ RUN mise install -C /tmp
 
 clamp_build_image() {
     local tool_dockerfile base_dockerfile workspace project_key project_dockerfile project_image_name tool_image_name
+    local -a runtime_build_opts=()
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
     project_key="$(printf '%s' "$workspace" | cksum | awk '{print $1}')"
@@ -318,6 +354,10 @@ clamp_build_image() {
     base_dockerfile="$CLAMP_SCRIPT_DIR/clamp-base.Dockerfile"
     tool_dockerfile="$CLAMP_SCRIPT_DIR/clamp-${CLAMP_HARNESS}.Dockerfile"
     project_dockerfile="$workspace/.clamp/clamp.Dockerfile"
+
+    if [ "$CLAMP_RUNTIME" = container ]; then
+        runtime_build_opts=(--dns "${CLAMP_CONTAINER_DNS:-1.1.1.1}")
+    fi
 
     if [ ! -f "$base_dockerfile" ]; then
         echo "Missing Dockerfile: $base_dockerfile"
@@ -329,23 +369,23 @@ clamp_build_image() {
     fi
 
     # Build base if needed
-    if [ "$CLAMP_REBUILD" = true ] || ! docker image inspect "$CLAMP_BASE_IMAGE_NAME" &>/dev/null; then
+    if [ "$CLAMP_REBUILD" = true ] || ! "$CLAMP_RUNTIME" image inspect "$CLAMP_BASE_IMAGE_NAME" &>/dev/null; then
         echo "Building $CLAMP_BASE_IMAGE_NAME from clamp-base.Dockerfile..."
-        docker build $CLAMP_NO_CACHE -f "$base_dockerfile" -t "$CLAMP_BASE_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
+        "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE -f "$base_dockerfile" -t "$CLAMP_BASE_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
     fi
 
     # Build tool image if needed
-    if [ "$CLAMP_REBUILD" = true ] || ! docker image inspect "$tool_image_name" &>/dev/null; then
+    if [ "$CLAMP_REBUILD" = true ] || ! "$CLAMP_RUNTIME" image inspect "$tool_image_name" &>/dev/null; then
         echo "Building $tool_image_name from clamp-${CLAMP_HARNESS}.Dockerfile..."
-        docker build $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$tool_image_name" "$CLAMP_SCRIPT_DIR"
+        "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$tool_image_name" "$CLAMP_SCRIPT_DIR"
     fi
 
     clamp_create_project_dockerfile "$workspace"
 
     # Always run the project build so edits to .clamp/clamp.Dockerfile are picked up;
-    # Docker's layer cache keeps the no-change path fast.
+    # The runtime's layer cache keeps the no-change path fast.
     echo "Building $project_image_name from .clamp/clamp.Dockerfile..."
-    docker build $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_dockerfile" -t "$project_image_name" "$workspace"
+    "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_dockerfile" -t "$project_image_name" "$workspace"
 }
 
 clamp_detect_timezone() {
@@ -368,8 +408,8 @@ clamp_detect_timezone() {
 
 clamp_run() {
     local workspace container_name project_name project_key config_volume cap_opts proxy_env timezone final_cmd workflows_enabled session_log_dir session_log_file session_log_container
-    local startup_args docker_run_status
-    local -a timezone_env=()
+    local startup_args runtime_status
+    local -a timezone_env=() runtime_security_opts=() runtime_network_opts=() workspace_volume=()
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
     container_name="${CLAMP_VOLUME_PREFIX}-$(date +%Y%m%d-%H%M%S)"
@@ -402,6 +442,15 @@ clamp_run() {
     if timezone="$(clamp_detect_timezone)"; then
         timezone_env=(-e "TZ=$timezone")
     fi
+
+    if [ "$CLAMP_RUNTIME" = docker ]; then
+        runtime_security_opts=(--security-opt no-new-privileges)
+        workspace_volume=(-v "$workspace:/workspace:delegated")
+    else
+        # Apple's CLI does not support Docker's --security-opt or :delegated suffix.
+        runtime_network_opts=(--dns "${CLAMP_CONTAINER_DNS:-1.1.1.1}")
+        workspace_volume=(-v "$workspace:/workspace")
+    fi
     # Check workflows environment variable
     workflows_enabled="${!CLAMP_WORKFLOWS_ENV:-false}"
     if [ "$workflows_enabled" = true ]; then
@@ -425,17 +474,18 @@ clamp_run() {
     # - Credential volumes (config copied fresh from image on each start)
     # - startup runs as root, then container-startup.sh execs the agent as dev
     # - NET_ADMIN capability for firewall setup/DNS ipset updates (unless --no-firewall)
-    # - no-new-privileges prevents the dev agent from gaining privileges later
+    # - Docker's no-new-privileges prevents the dev agent from gaining privileges later
     # - Interactive TTY
     # - Auto-remove on exit
-    if docker run -it --rm \
+    if "$CLAMP_RUNTIME" run -it --rm \
         --name "$container_name" \
         --user root \
-        --security-opt no-new-privileges \
+        "${runtime_security_opts[@]}" \
+        "${runtime_network_opts[@]}" \
         $cap_opts \
         ${proxy_env:+$proxy_env} \
         "${timezone_env[@]}" \
-        -v "$workspace:/workspace:delegated" \
+        "${workspace_volume[@]}" \
         --tmpfs /workspace/.clamp:rw,noexec,nosuid,nodev,mode=700 \
         -v "$session_log_dir:/workspace/.clamp/sessions" \
         -v "${project_name}-node-modules:/workspace/node_modules" \
@@ -443,17 +493,18 @@ clamp_run() {
         -v "${project_name}-gradle-cache:/home/dev/.gradle" \
         -v "${config_volume}:${CLAMP_CONFIG_DIR}" \
         -e "${CLAMP_CONFIG_ENV}=${CLAMP_CONFIG_DIR}" \
+        -e "CLAMP_CONFIG_DIR=${CLAMP_CONFIG_DIR}" \
         -e "CLAMP_CONTAINER_USER=$CLAMP_CONTAINER_USER" \
         -e "CLAMP_BLOCKED_LOG_FILE=$session_log_container" \
         "$CLAMP_IMAGE_NAME" \
         /usr/local/bin/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"; then
-        docker_run_status=0
+        runtime_status=0
     else
-        docker_run_status=$?
+        runtime_status=$?
     fi
 
     "$CLAMP_SCRIPT_DIR/shutdown-scripts/clamp-shutdown.sh" "$workspace" || true
-    return "$docker_run_status"
+    return "$runtime_status"
 }
 
 clamp_main() {
