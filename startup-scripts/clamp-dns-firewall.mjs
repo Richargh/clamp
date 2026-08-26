@@ -8,7 +8,8 @@ const listenHost = process.env.CLAMP_DNS_LISTEN_HOST || '127.0.0.1';
 const listenPort = Number(process.env.CLAMP_DNS_LISTEN_PORT || '53');
 const upstreams = (process.env.CLAMP_UPSTREAM_DNS || '1.1.1.1,8.8.8.8')
   .split(',').map(s => s.trim()).filter(Boolean);
-const logFile = process.env.CLAMP_BLOCKED_DOMAIN_LOG_FILE || process.env.CLAMP_BLOCKED_LOG_FILE || '/workspace/.clamp/sessions/network.log';
+const logFile = process.env.CLAMP_NETWORK_LOG_FILE || '/workspace/.clamp/sessions/network.log';
+const allowAll = process.env.CLAMP_DNS_ALLOW_ALL === '1';
 const domainFiles = process.argv.slice(2);
 
 function log(line) {
@@ -104,16 +105,17 @@ function forward(query, cb) {
 const server = dgram.createSocket('udp4');
 server.on('message', (msg, rinfo) => {
   const q = parseQuestion(msg);
-  if (!q || !q.name || !allowed.has(q.name)) {
+  if (!q || !q.name || (!allowAll && !allowed.has(q.name))) {
     const name = q?.name || '(malformed)';
-    log(`BLOCKED-DNS domain=${name} client=${rinfo.address}:${rinfo.port}`);
+    log(`CLAMP-DNS-BLOCKED domain=${name} client=${rinfo.address}:${rinfo.port}`);
     server.send(nxdomainResponse(msg), rinfo.port, rinfo.address);
     return;
   }
 
+  log(`CLAMP-DNS-ALLOWED domain=${q.name} client=${rinfo.address}:${rinfo.port}`);
   forward(msg, (response) => {
     if (!response) {
-      log(`DNS-UPSTREAM-FAIL domain=${q.name}`);
+      log(`CLAMP-DNS-UPSTREAM-FAIL domain=${q.name}`);
       server.send(nxdomainResponse(msg), rinfo.port, rinfo.address);
       return;
     }
@@ -123,5 +125,5 @@ server.on('message', (msg, rinfo) => {
 });
 
 server.bind(listenPort, listenHost, () => {
-  log(`DNS firewall listening on ${listenHost}:${listenPort}; allowed_domains=${allowed.size}; upstreams=${upstreams.join(',')}`);
+  log(`CLAMP-DNS-LISTENING host=${listenHost} port=${listenPort} allowed_domains=${allowed.size} allow_all=${allowAll} upstreams=${upstreams.join(',')}`);
 });

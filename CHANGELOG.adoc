@@ -4,6 +4,14 @@ This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog]
 
 == Unreleased
 
+=== Added
+
+* Network request logging remains active in `--no-firewall` sessions by keeping permissive firewall/DNS/proxy logging hooks installed.
+
+=== Fixed
+
+* Firewall startup on lightweight guest kernels by falling back from `iptables-nft` to `iptables-legacy` when required.
+
 == 0.2.0 - 2026-08-17
 
 === Added

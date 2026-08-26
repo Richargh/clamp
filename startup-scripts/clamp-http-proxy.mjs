@@ -6,8 +6,9 @@ import { localNow } from './local-time.mjs';
 
 const listenHost = process.env.CLAMP_PROXY_LISTEN_HOST || '127.0.0.1';
 const listenPort = Number(process.env.CLAMP_PROXY_LISTEN_PORT || '8888');
-const logFile = process.env.CLAMP_PROXY_LOG_FILE || process.env.CLAMP_BLOCKED_LOG_FILE || '/workspace/.clamp/sessions/network.log';
+const logFile = process.env.CLAMP_NETWORK_LOG_FILE || '/workspace/.clamp/sessions/network.log';
 const domainFiles = process.argv.slice(2);
+const allowAll = process.env.CLAMP_PROXY_ALLOW_ALL === '1';
 
 function log(line) {
   const entry = `${localNow()} ${line}\n`;
@@ -34,9 +35,16 @@ function normalizeHost(host) {
   return String(host || '').trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/\.$/, '');
 }
 
+function loopbackHost(host) {
+  const normalized = normalizeHost(host);
+  return normalized === 'localhost' || normalized === '::1' || normalized.startsWith('127.');
+}
+
 function allowedHost(host) {
   const normalized = normalizeHost(host);
-  return normalized && !ipLiteral.test(normalized) && allowed.has(normalized);
+  if (!normalized) return false;
+  if (allowAll || loopbackHost(normalized)) return true;
+  return !ipLiteral.test(normalized) && allowed.has(normalized);
 }
 
 function deny(resOrSocket, status, msg) {
@@ -61,12 +69,12 @@ const server = http.createServer((clientReq, clientRes) => {
 
   const host = normalizeHost(target.hostname);
   const port = Number(target.port || (target.protocol === 'https:' ? 443 : 80));
-  if (!allowedHost(host) || ![80, 443].includes(port)) {
-    log(`BLOCKED-PROXY method=${clientReq.method} host=${host} port=${port} url=${clientReq.url}`);
+  if (!allowedHost(host) || (!allowAll && !loopbackHost(host) && ![80, 443].includes(port)) || port < 1 || port > 65535) {
+    log(`CLAMP-PROXY-HTTP-BLOCKED method=${clientReq.method} host=${host} port=${port} url=${clientReq.url}`);
     return deny(clientRes, 403, 'Forbidden');
   }
 
-  log(`ALLOWED-PROXY method=${clientReq.method} host=${host} port=${port}`);
+  log(`CLAMP-PROXY-HTTP-ALLOWED method=${clientReq.method} host=${host} port=${port}`);
   const headers = { ...clientReq.headers };
   delete headers['proxy-connection'];
   const upstreamReq = http.request({
@@ -80,7 +88,7 @@ const server = http.createServer((clientReq, clientRes) => {
     upstreamRes.pipe(clientRes);
   });
   upstreamReq.on('error', (err) => {
-    log(`PROXY-UPSTREAM-ERROR host=${host} port=${port} error=${err.code || err.message}`);
+    log(`CLAMP-PROXY-UPSTREAM-ERROR host=${host} port=${port} error=${err.code || err.message}`);
     if (!clientRes.headersSent) deny(clientRes, 502, 'Bad Gateway');
     else clientRes.destroy();
   });
@@ -91,24 +99,24 @@ server.on('connect', (req, clientSocket, head) => {
   const [rawHost, rawPort] = String(req.url || '').split(':');
   const host = normalizeHost(rawHost);
   const port = Number(rawPort || 443);
-  if (!allowedHost(host) || port !== 443) {
-    log(`BLOCKED-CONNECT host=${host} port=${port}`);
+  if (!allowedHost(host) || (!allowAll && !loopbackHost(host) && port !== 443) || port < 1 || port > 65535) {
+    log(`CLAMP-PROXY-CONNECT-BLOCKED host=${host} port=${port}`);
     return deny(clientSocket, 403, 'Forbidden');
   }
 
   const upstream = net.connect(port, host, () => {
-    log(`ALLOWED-CONNECT host=${host} port=${port}`);
+    log(`CLAMP-PROXY-CONNECT-ALLOWED host=${host} port=${port}`);
     clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
     if (head?.length) upstream.write(head);
     upstream.pipe(clientSocket);
     clientSocket.pipe(upstream);
   });
   upstream.on('error', (err) => {
-    log(`CONNECT-UPSTREAM-ERROR host=${host} port=${port} error=${err.code || err.message}`);
+    log(`CLAMP-PROXY-CONNECT-UPSTREAM-ERROR host=${host} port=${port} error=${err.code || err.message}`);
     deny(clientSocket, 502, 'Bad Gateway');
   });
 });
 
 server.listen(listenPort, listenHost, () => {
-  log(`HTTP(S) proxy listening on ${listenHost}:${listenPort}; allowed_domains=${allowed.size}`);
+  log(`CLAMP-PROXY-LISTENING host=${listenHost} port=${listenPort} allowed_domains=${allowed.size} allow_all=${allowAll}`);
 });

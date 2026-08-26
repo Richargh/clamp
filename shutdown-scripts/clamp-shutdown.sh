@@ -26,7 +26,7 @@ if [ -z "$latest_log" ]; then
     exit 0
 fi
 
-problem_pattern='BLOCKED|UPSTREAM-FAIL|UPSTREAM-ERROR|CLAMP-BLOCKED'
+problem_pattern='CLAMP-.*(BLOCKED|UPSTREAM-FAIL|UPSTREAM-ERROR)'
 problem_count="$(grep -E -c "$problem_pattern" "$latest_log" 2>/dev/null || true)"
 if [ -z "$problem_count" ]; then
     problem_count=0

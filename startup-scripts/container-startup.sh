@@ -61,6 +61,18 @@ NO_FIREWALL=false
 ADD_WORKFLOWS=false
 HARNESS=""
 AGENT_CMD=()
+AGENT_ENV=(
+    "HOME=$CLAMP_CONTAINER_HOME"
+    "USER=$CLAMP_CONTAINER_USER"
+    "LOGNAME=$CLAMP_CONTAINER_USER"
+    "PATH=$PATH"
+    "HTTP_PROXY=${HTTP_PROXY:?Error: HTTP_PROXY must be set}"
+    "HTTPS_PROXY=${HTTPS_PROXY:?Error: HTTPS_PROXY must be set}"
+    "NO_PROXY=${NO_PROXY?Error: NO_PROXY must be set}"
+    "http_proxy=$HTTP_PROXY"
+    "https_proxy=$HTTPS_PROXY"
+    "no_proxy=$NO_PROXY"
+)
 while [ $# -gt 0 ]; do
     case $1 in
         --no-firewall) NO_FIREWALL=true; shift ;;
@@ -107,7 +119,8 @@ if [ "$NO_FIREWALL" = true ]; then
         sed -i '/"WebFetch(domain:\*)",/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
         sed -i '/"WebSearch"/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
     fi
-    # OpenCode: no special handling needed for no-firewall mode
+    # OpenCode: no permission cleanup needed for no-firewall mode
+    /usr/local/bin/init-firewall.sh --allow-all
 else
     if ! find /opt/clamp-shared/allowed-domains.d -maxdepth 1 -type f -name '*.txt' 2>/dev/null | grep -q .; then
         echo "No allowed-domain files found in /opt/clamp-shared/allowed-domains.d."
@@ -138,4 +151,4 @@ exec setpriv \
     --bounding-set=-net_admin \
     --reset-env \
     -- \
-    env HOME="$CLAMP_CONTAINER_HOME" USER="$CLAMP_CONTAINER_USER" LOGNAME="$CLAMP_CONTAINER_USER" PATH="$PATH" "${AGENT_CMD[@]}"
+    env "${AGENT_ENV[@]}" "${AGENT_CMD[@]}"

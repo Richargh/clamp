@@ -429,13 +429,13 @@ clamp_run() {
 
     # Set startup options based on flags
     startup_args=("--harness=${CLAMP_HARNESS}")
+    proxy_env="\
+-e HTTP_PROXY=http://127.0.0.1:8888 \
+-e HTTPS_PROXY=http://127.0.0.1:8888 \
+-e NO_PROXY="
+    cap_opts="--cap-add=NET_ADMIN"
     if [ "$CLAMP_NO_FIREWALL" = true ]; then
         startup_args+=("--no-firewall")
-        cap_opts=""
-        proxy_env=""
-    else
-        cap_opts="--cap-add=NET_ADMIN"
-        proxy_env="-e HTTP_PROXY=http://127.0.0.1:8888 -e HTTPS_PROXY=http://127.0.0.1:8888 -e http_proxy=http://127.0.0.1:8888 -e https_proxy=http://127.0.0.1:8888 -e NO_PROXY=localhost,127.0.0.1,::1 -e no_proxy=localhost,127.0.0.1,::1"
     fi
 
     # Keep container-side session log timestamps in the host's local time.
@@ -473,7 +473,7 @@ clamp_run() {
     # - Named volumes for heavy I/O directories (build artifacts, caches)
     # - Credential volumes (config copied fresh from image on each start)
     # - startup runs as root, then container-startup.sh execs the agent as dev
-    # - NET_ADMIN capability for firewall setup/DNS ipset updates (unless --no-firewall)
+    # - NET_ADMIN capability for firewall setup/DNS ipset updates
     # - Docker's no-new-privileges prevents the dev agent from gaining privileges later
     # - Interactive TTY
     # - Auto-remove on exit
@@ -495,7 +495,7 @@ clamp_run() {
         -e "${CLAMP_CONFIG_ENV}=${CLAMP_CONFIG_DIR}" \
         -e "CLAMP_CONFIG_DIR=${CLAMP_CONFIG_DIR}" \
         -e "CLAMP_CONTAINER_USER=$CLAMP_CONTAINER_USER" \
-        -e "CLAMP_BLOCKED_LOG_FILE=$session_log_container" \
+        -e "CLAMP_NETWORK_LOG_FILE=$session_log_container" \
         "$CLAMP_IMAGE_NAME" \
         /usr/local/bin/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"; then
         runtime_status=0
