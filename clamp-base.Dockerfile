@@ -1,4 +1,4 @@
-FROM debian:12.13-slim
+FROM debian:13.6-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
