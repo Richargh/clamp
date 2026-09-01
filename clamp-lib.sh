@@ -29,6 +29,27 @@ CLAMP_PER_PROJECT_AUTH=false
 CLAMP_PER_PROJECT_AUTH_EXPLICIT=false
 CLAMP_NO_FIREWALL=false
 CLAMP_DANGER_MODE=false
+
+clamp_print_header() {
+    if [ -t 1 ]; then
+        printf '\033[1;36m[%s]\033[0m\n' "$1"
+    else
+        printf '[%s]\n' "$1"
+    fi
+}
+
+clamp_print_text() {
+    if [ -t 1 ]; then
+        printf '\033[90m  '
+        printf "$@"
+        printf '\033[0m\n'
+    else
+        printf '  '
+        printf "$@"
+        printf '\n'
+    fi
+}
+
 CLAMP_SHELL_MODE=false
 CLAMP_FOLDER=""
 CLAMP_RUNTIME="docker"
@@ -225,17 +246,7 @@ clamp_resolve_auth_policy() {
 }
 
 clamp_log_config() {
-    local auth firewall runtime header_color text_color reset_color
-
-    if [ -t 1 ]; then
-        header_color=$'\033[1;36m'
-        text_color=$'\033[90m'
-        reset_color=$'\033[0m'
-    else
-        header_color=""
-        text_color=""
-        reset_color=""
-    fi
+    local auth firewall runtime
 
     if [ "$CLAMP_PER_PROJECT_AUTH" = true ]; then
         auth="Project"
@@ -255,28 +266,18 @@ clamp_log_config() {
         runtime="Docker"
     fi
 
-    printf '%s[Clamp User Config]%s\n' "$header_color" "$reset_color"
-    printf '%s  Auth: %s%s\n' "$text_color" "$auth" "$reset_color"
+    clamp_print_header "Clamp User Config"
+    clamp_print_text 'Auth: %s' "$auth"
     echo ""
-    printf '%s[Clamp CLI Config]%s\n' "$header_color" "$reset_color"
-    printf '%s  Coding Agent: %s%s\n' "$text_color" "$CLAMP_TOOL_NAME" "$reset_color"
-    printf '%s  Runtime: %s%s\n' "$text_color" "$runtime" "$reset_color"
-    printf '%s  Firewall: %s%s\n' "$text_color" "$firewall" "$reset_color"
+    clamp_print_header "Clamp CLI Config"
+    clamp_print_text 'Coding Agent: %s' "$CLAMP_TOOL_NAME"
+    clamp_print_text 'Runtime: %s' "$runtime"
+    clamp_print_text 'Firewall: %s' "$firewall"
     echo ""
 }
 
 clamp_create_project_dockerfile() {
-    local workspace project_dockerfile base_image project_allowed_domains_dir default_allowed_domains_dir header_color text_color reset_color printed_project_setup
-
-    if [ -t 1 ]; then
-        header_color=$'\033[1;36m'
-        text_color=$'\033[90m'
-        reset_color=$'\033[0m'
-    else
-        header_color=""
-        text_color=""
-        reset_color=""
-    fi
+    local workspace project_dockerfile base_image project_allowed_domains_dir default_allowed_domains_dir printed_project_setup
 
     printed_project_setup=false
 
@@ -293,21 +294,21 @@ clamp_create_project_dockerfile() {
         if [ -d "$default_allowed_domains_dir" ]; then
             cp -a "$default_allowed_domains_dir/." "$project_allowed_domains_dir/"
         fi
-        printf '%s[Clamp Project Setup]%s\n' "$header_color" "$reset_color"
+        clamp_print_header "Clamp Project Setup"
         printed_project_setup=true
-        printf '%s  Created allowed domains directory: %s%s\n' "$text_color" "$project_allowed_domains_dir" "$reset_color"
-        printf '%s  Review this directory and delete domain files this project should not allow.%s\n' "$text_color" "$reset_color"
+        clamp_print_text 'Created allowed domains directory: %s' "$project_allowed_domains_dir"
+        clamp_print_text 'Review this directory and delete domain files this project should not allow.'
     fi
 
     if [ -f "$project_dockerfile" ]; then
         if [ "$printed_project_setup" = false ]; then
-            printf '%s[Clamp Project Setup]%s\n' "$header_color" "$reset_color"
+            clamp_print_header "Clamp Project Setup"
             printed_project_setup=true
         fi
-        printf '%s  Using project Dockerfile: %s%s\n' "$text_color" "$project_dockerfile" "$reset_color"
+        clamp_print_text 'Using project Dockerfile: %s' "$project_dockerfile"
         if [ -f "$workspace/mise.toml" ] && ! grep -q 'mise install -C /tmp' "$project_dockerfile"; then
-            printf '%s  Note: mise.toml exists, but this Dockerfile does not install mise tools.%s\n' "$text_color" "$reset_color"
-            printf '%s  Add the mise install block to the Dockerfile, or delete it to regenerate.%s\n' "$text_color" "$reset_color"
+            clamp_print_text 'Note: mise.toml exists, but this Dockerfile does not install mise tools.'
+            clamp_print_text 'Add the mise install block to the Dockerfile, or delete it to regenerate.'
         fi
         echo ""
         return
@@ -336,14 +337,15 @@ RUN mise install -C /tmp
     } > "$project_dockerfile"
 
     if [ "$printed_project_setup" = false ]; then
-        printf '%s[Clamp Project Setup]%s\n' "$header_color" "$reset_color"
+        clamp_print_header "Clamp Project Setup"
     fi
-    printf '%s  Created project Dockerfile: %s%s\n' "$text_color" "$project_dockerfile" "$reset_color"
+    clamp_print_text 'Created project Dockerfile: %s' "$project_dockerfile"
     echo ""
 }
 
 clamp_build_image() {
     local tool_dockerfile base_dockerfile workspace project_key project_dockerfile project_image_name tool_image_name
+    local build_tool
     local -a runtime_build_opts=()
 
     workspace="$(cd "$CLAMP_FOLDER" && pwd)"
@@ -357,6 +359,9 @@ clamp_build_image() {
 
     if [ "$CLAMP_RUNTIME" = container ]; then
         runtime_build_opts=(--dns "${CLAMP_CONTAINER_DNS:-1.1.1.1}")
+        build_tool="Apple container"
+    else
+        build_tool="Docker"
     fi
 
     if [ ! -f "$base_dockerfile" ]; then
@@ -370,22 +375,35 @@ clamp_build_image() {
 
     # Build base if needed
     if [ "$CLAMP_REBUILD" = true ] || ! "$CLAMP_RUNTIME" image inspect "$CLAMP_BASE_IMAGE_NAME" &>/dev/null; then
-        echo "Building $CLAMP_BASE_IMAGE_NAME from clamp-base.Dockerfile..."
+        clamp_print_header "Clamp Image Build"
+        clamp_print_text 'Tool: %s' "$build_tool"
+        clamp_print_text 'Image: %s' "$CLAMP_BASE_IMAGE_NAME"
+        clamp_print_text 'Dockerfile: %s' "clamp-base.Dockerfile"
         "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE -f "$base_dockerfile" -t "$CLAMP_BASE_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
+        echo ""
     fi
 
     # Build tool image if needed
     if [ "$CLAMP_REBUILD" = true ] || ! "$CLAMP_RUNTIME" image inspect "$tool_image_name" &>/dev/null; then
-        echo "Building $tool_image_name from clamp-${CLAMP_HARNESS}.Dockerfile..."
+        clamp_print_header "Clamp Image Build"
+        clamp_print_text 'Tool: %s' "$build_tool"
+        clamp_print_text 'Image: %s' "$tool_image_name"
+        clamp_print_text 'Dockerfile: %s' "clamp-${CLAMP_HARNESS}.Dockerfile"
         "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$tool_image_name" "$CLAMP_SCRIPT_DIR"
+        echo ""
     fi
 
     clamp_create_project_dockerfile "$workspace"
 
     # Always run the project build so edits to .clamp/clamp.Dockerfile are picked up;
     # The runtime's layer cache keeps the no-change path fast.
-    echo "Building $project_image_name from .clamp/clamp.Dockerfile..."
+    clamp_print_header "Clamp Image Build"
+    clamp_print_text 'Tool: %s' "$build_tool"
+    clamp_print_text 'Image: %s' "$project_image_name"
+    clamp_print_text 'Dockerfile: %s' ".clamp/clamp.Dockerfile"
+    clamp_print_text 'Why: Clamp builds a per-project image so project Dockerfile changes, allowed-domain files, and tool setup are applied before the agent starts.'
     "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_dockerfile" -t "$project_image_name" "$workspace"
+    echo ""
 }
 
 clamp_detect_timezone() {

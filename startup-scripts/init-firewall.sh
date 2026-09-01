@@ -10,6 +10,26 @@
 
 set -e
 
+print_header() {
+    if [ -t 1 ]; then
+        printf '\033[1;36m[%s]\033[0m\n' "$1"
+    else
+        printf '[%s]\n' "$1"
+    fi
+}
+
+print_text() {
+    if [ -t 1 ]; then
+        printf '\033[90m  '
+        printf "$@"
+        printf '\033[0m\n'
+    else
+        printf '  '
+        printf "$@"
+        printf '\n'
+    fi
+}
+
 if [ -z "${CLAMP_CONTAINER_USER:-}" ]; then
     echo "Error: CLAMP_CONTAINER_USER must be set" >&2
     exit 1
@@ -66,7 +86,6 @@ if ! "$IPTABLES" -L OUTPUT -n >/dev/null 2>&1; then
         exit 1
     fi
 fi
-echo "Firewall backend: $IPTABLES"
 
 mkdir -p "$(dirname "$NETWORK_LOG_FILE")"
 touch "$NETWORK_LOG_FILE"
@@ -169,15 +188,16 @@ echo $! > "$PROXY_PID_FILE"
 
 sleep 0.2
 
+print_header "Clamp Firewall"
 if [ "$FIREWALL_ALLOW_ALL" = true ]; then
-    echo "Firewall initialized in allow-all logging mode (--no-firewall)."
+    print_text 'Status: Initialized in allow-all logging mode (--no-firewall)'
 else
-    echo "Firewall initialized. Allowed endpoints are loaded by the DNS firewall and proxy."
+    print_text 'Status: Initialized with allowlist enforcement'
 fi
-echo ""
-echo "Local DNS firewall: 127.0.0.1:53"
-echo "Local HTTP(S) proxy: http://127.0.0.1:8888"
-echo "Network log: $NETWORK_LOG_FILE"
-echo "Upstream DNS: $UPSTREAM_DNS"
+print_text 'Backend: %s' "$IPTABLES"
+print_text 'DNS: 127.0.0.1:53'
+print_text 'HTTP(S) Proxy: http://127.0.0.1:8888'
+print_text 'Network Log: %s' "$NETWORK_LOG_FILE"
+print_text 'Upstream DNS: %s' "$UPSTREAM_DNS"
 WHITELISTED_ENDPOINT_COUNT="$(ipset list allowed_endpoints 2>/dev/null | grep -c '^[0-9]' || true)"
-echo "Total endpoints currently whitelisted: ${WHITELISTED_ENDPOINT_COUNT:-0}"
+print_text 'Whitelisted Endpoints: %s' "${WHITELISTED_ENDPOINT_COUNT:-0}"
