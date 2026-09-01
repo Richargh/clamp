@@ -1,10 +1,10 @@
 # Maven/Gradle repositories
-repo.maven.apache.org
-repo1.maven.org
-plugins.gradle.org
-services.gradle.org
-downloads.gradle.org
-repo.gradle.org
-jcenter.bintray.com
-dl.google.com
-maven.google.com
+repo.maven.apache.org:443
+repo1.maven.org:443
+plugins.gradle.org:443
+services.gradle.org:443
+downloads.gradle.org:443
+repo.gradle.org:443
+jcenter.bintray.com:443
+dl.google.com:443
+maven.google.com:443

@@ -1,5 +1,5 @@
 # GitHub Copilot
-api.githubcopilot.com
-githubcopilot.com
-copilot-proxy.githubusercontent.com
-copilot-telemetry.githubusercontent.com
+api.githubcopilot.com:443
+githubcopilot.com:443
+copilot-proxy.githubusercontent.com:443
+copilot-telemetry.githubusercontent.com:443

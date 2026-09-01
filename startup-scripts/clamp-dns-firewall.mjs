@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import dgram from 'node:dgram';
 import fs from 'node:fs';
-import { spawnSync } from 'node:child_process';
-import { localNow } from './local-time.mjs';
+import {spawnSync} from 'node:child_process';
+import {loadAllowList} from './allowed-endpoints.mjs';
+import {localNow} from './local-time.mjs';
 
 const listenHost = process.env.CLAMP_DNS_LISTEN_HOST || '127.0.0.1';
 const listenPort = Number(process.env.CLAMP_DNS_LISTEN_PORT || '53');
@@ -16,19 +17,7 @@ function log(line) {
   fs.appendFileSync(logFile, `${localNow()} ${line}\n`);
 }
 
-function loadAllowed(files) {
-  const allowed = new Set();
-  for (const file of files) {
-    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
-    for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-      const line = raw.replace(/#.*/, '').replace(/\s+/g, '').toLowerCase();
-      if (line) allowed.add(line.endsWith('.') ? line.slice(0, -1) : line);
-    }
-  }
-  return allowed;
-}
-
-const allowed = loadAllowed(domainFiles);
+const allowList = loadAllowList(domainFiles, { allowAll });
 
 function parseQuestion(msg) {
   let off = 12;
@@ -54,12 +43,12 @@ function skipName(msg, off) {
   return off;
 }
 
-function addIp(ip, ttl) {
+function addEndpoint(ip, port, ttl) {
   const timeout = Math.max(60, Math.min(Number(ttl) || 300, 86400));
-  spawnSync('ipset', ['add', 'allowed_ips', ip, 'timeout', String(timeout), '-exist'], { stdio: 'ignore' });
+  spawnSync('ipset', ['add', 'allowed_endpoints', `${ip},tcp:${port}`, 'timeout', String(timeout), '-exist'], { stdio: 'ignore' });
 }
 
-function parseAndAllowAnswers(msg) {
+function parseAndAllowAnswers(msg, allowedPorts) {
   if (msg.length < 12) return;
   const qd = msg.readUInt16BE(4);
   const an = msg.readUInt16BE(6);
@@ -76,7 +65,8 @@ function parseAndAllowAnswers(msg) {
     const rdlen = msg.readUInt16BE(off); off += 2;
     if (off + rdlen > msg.length) return;
     if (type === 1 && klass === 1 && rdlen === 4) {
-      addIp([...msg.subarray(off, off + 4)].join('.'), ttl);
+      const ip = [...msg.subarray(off, off + 4)].join('.');
+      for (const port of allowedPorts) addEndpoint(ip, port, ttl);
     }
     off += rdlen;
   }
@@ -105,25 +95,26 @@ function forward(query, cb) {
 const server = dgram.createSocket('udp4');
 server.on('message', (msg, rinfo) => {
   const q = parseQuestion(msg);
-  if (!q || !q.name || (!allowAll && !allowed.has(q.name))) {
+  if (!q || !q.name || allowList.isHostBlocked(q.name)) {
     const name = q?.name || '(malformed)';
     log(`CLAMP-DNS-BLOCKED domain=${name} client=${rinfo.address}:${rinfo.port}`);
     server.send(nxdomainResponse(msg), rinfo.port, rinfo.address);
     return;
   }
 
-  log(`CLAMP-DNS-ALLOWED domain=${q.name} client=${rinfo.address}:${rinfo.port}`);
+  const allowedPorts = allowList.allowedPortsForHost(q.name);
+  log(`CLAMP-DNS-ALLOWED domain=${q.name} ports=${allowedPorts.join(',')} client=${rinfo.address}:${rinfo.port}`);
   forward(msg, (response) => {
     if (!response) {
       log(`CLAMP-DNS-UPSTREAM-FAIL domain=${q.name}`);
       server.send(nxdomainResponse(msg), rinfo.port, rinfo.address);
       return;
     }
-    parseAndAllowAnswers(response);
+    parseAndAllowAnswers(response, allowedPorts);
     server.send(response, rinfo.port, rinfo.address);
   });
 });
 
 server.bind(listenPort, listenHost, () => {
-  log(`CLAMP-DNS-LISTENING host=${listenHost} port=${listenPort} allowed_domains=${allowed.size} allow_all=${allowAll} upstreams=${upstreams.join(',')}`);
+  log(`CLAMP-DNS-LISTENING host=${listenHost} port=${listenPort} allowed_domains=${allowList.size} allow_all=${allowAll} upstreams=${upstreams.join(',')}`);
 });

@@ -2,6 +2,7 @@
 import http from 'node:http';
 import net from 'node:net';
 import fs from 'node:fs';
+import { loadAllowList } from './allowed-endpoints.mjs';
 import { localNow } from './local-time.mjs';
 
 const listenHost = process.env.CLAMP_PROXY_LISTEN_HOST || '127.0.0.1';
@@ -16,36 +17,7 @@ function log(line) {
   else fs.appendFileSync(logFile, entry);
 }
 
-function loadAllowed(files) {
-  const allowed = new Set();
-  for (const file of files) {
-    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
-    for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-      const line = raw.replace(/#.*/, '').replace(/\s+/g, '').toLowerCase();
-      if (line) allowed.add(line.endsWith('.') ? line.slice(0, -1) : line);
-    }
-  }
-  return allowed;
-}
-
-const allowed = loadAllowed(domainFiles);
-const ipLiteral = /^(?:\d{1,3}\.){3}\d{1,3}$|^\[[0-9a-f:]+\]$|^[0-9a-f:]*:[0-9a-f:]+$/i;
-
-function normalizeHost(host) {
-  return String(host || '').trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/\.$/, '');
-}
-
-function loopbackHost(host) {
-  const normalized = normalizeHost(host);
-  return normalized === 'localhost' || normalized === '::1' || normalized.startsWith('127.');
-}
-
-function allowedHost(host) {
-  const normalized = normalizeHost(host);
-  if (!normalized) return false;
-  if (allowAll || loopbackHost(normalized)) return true;
-  return !ipLiteral.test(normalized) && allowed.has(normalized);
-}
+const allowList = loadAllowList(domainFiles, { allowAll, allowLoopback: true });
 
 function deny(resOrSocket, status, msg) {
   if (typeof resOrSocket.writeHead === 'function') {
@@ -67,9 +39,9 @@ const server = http.createServer((clientReq, clientRes) => {
     target = new URL(`http://${host}${clientReq.url}`);
   }
 
-  const host = normalizeHost(target.hostname);
+  const host = target.hostname;
   const port = Number(target.port || (target.protocol === 'https:' ? 443 : 80));
-  if (!allowedHost(host) || (!allowAll && !loopbackHost(host) && ![80, 443].includes(port)) || port < 1 || port > 65535) {
+  if (allowList.isEndpointBlocked(host, port)) {
     log(`CLAMP-PROXY-HTTP-BLOCKED method=${clientReq.method} host=${host} port=${port} url=${clientReq.url}`);
     return deny(clientRes, 403, 'Forbidden');
   }
@@ -97,9 +69,9 @@ const server = http.createServer((clientReq, clientRes) => {
 
 server.on('connect', (req, clientSocket, head) => {
   const [rawHost, rawPort] = String(req.url || '').split(':');
-  const host = normalizeHost(rawHost);
+  const host = rawHost;
   const port = Number(rawPort || 443);
-  if (!allowedHost(host) || (!allowAll && !loopbackHost(host) && port !== 443) || port < 1 || port > 65535) {
+  if (allowList.isEndpointBlocked(host, port)) {
     log(`CLAMP-PROXY-CONNECT-BLOCKED host=${host} port=${port}`);
     return deny(clientSocket, 403, 'Forbidden');
   }
@@ -118,5 +90,5 @@ server.on('connect', (req, clientSocket, head) => {
 });
 
 server.listen(listenPort, listenHost, () => {
-  log(`CLAMP-PROXY-LISTENING host=${listenHost} port=${listenPort} allowed_domains=${allowed.size} allow_all=${allowAll}`);
+  log(`CLAMP-PROXY-LISTENING host=${listenHost} port=${listenPort} allowed_domains=${allowList.size} allow_all=${allowAll}`);
 });

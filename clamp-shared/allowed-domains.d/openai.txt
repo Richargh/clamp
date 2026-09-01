@@ -1,7 +1,7 @@
 # OpenAI / ChatGPT
-api.openai.com
-auth.openai.com
-chatgpt.com
-openai.com
-chat.openai.com
-auth0.openai.com
+api.openai.com:443
+auth.openai.com:443
+chatgpt.com:443
+openai.com:443
+chat.openai.com:443
+auth0.openai.com:443

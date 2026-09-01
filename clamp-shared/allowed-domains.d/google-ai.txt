@@ -1,2 +1,2 @@
 # Google AI
-generativelanguage.googleapis.com
+generativelanguage.googleapis.com:443
