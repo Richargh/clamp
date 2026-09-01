@@ -503,7 +503,7 @@ clamp_run() {
         runtime_status=$?
     fi
 
-    "$CLAMP_SCRIPT_DIR/shutdown-scripts/clamp-shutdown.sh" "$workspace" || true
+    "$CLAMP_SCRIPT_DIR/shutdown-scripts/clamp-shutdown.sh" "$workspace" "${session_log_file##*/}" || true
     return "$runtime_status"
 }
 

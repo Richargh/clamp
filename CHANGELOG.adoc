@@ -14,6 +14,7 @@ This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog]
 
 === Fixed
 
+* Shutdown network summaries now use the session log from the Clamp run that just exited instead of guessing the most recent log.
 * Firewall startup on lightweight guest kernels by falling back from `iptables-nft` to `iptables-legacy` when required.
 
 == 0.2.0 - 2026-08-17
