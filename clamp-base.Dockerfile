@@ -68,8 +68,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
     && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME
 
-# Copy startup scripts. Project-specific .clamp/clamp.Dockerfile copies selected
-COPY startup-scripts/ /usr/local/bin/
+COPY startup-scripts/ /opt/clamp/startup/
+COPY clamp-shared/container-bin/ /usr/local/bin/
 
 WORKDIR /workspace
 USER $USERNAME

@@ -155,7 +155,7 @@ fi
 # Start local DNS firewall as root because it binds :53 and updates ipset.
 CLAMP_NETWORK_LOG_FILE="$NETWORK_LOG_FILE" CLAMP_UPSTREAM_DNS="$UPSTREAM_DNS" \
     CLAMP_DNS_ALLOW_ALL=$([ "$FIREWALL_ALLOW_ALL" = true ] && echo 1 || echo 0) \
-    /opt/node/bin/node /usr/local/bin/clamp-dns-firewall.mjs "${DOMAIN_SOURCES[@]}" &
+    /opt/node/bin/node /opt/clamp/startup/clamp-dns-firewall.mjs "${DOMAIN_SOURCES[@]}" &
 echo $! > "$DNS_PID_FILE"
 
 # Start the HTTP(S) proxy as an unprivileged user. In strict mode, this is the
@@ -163,7 +163,7 @@ echo $! > "$DNS_PID_FILE"
 # shellcheck disable=SC2094 # Proxy writes logs to stdout; root-owned shell redirects to the log file.
 CLAMP_NETWORK_LOG_FILE="$NETWORK_LOG_FILE" CLAMP_LOG_STDOUT=1 \
     CLAMP_PROXY_ALLOW_ALL=$([ "$FIREWALL_ALLOW_ALL" = true ] && echo 1 || echo 0) \
-    runuser -u clamp-proxy --preserve-environment -- /opt/node/bin/node /usr/local/bin/clamp-http-proxy.mjs "${DOMAIN_SOURCES[@]}" \
+    runuser -u clamp-proxy --preserve-environment -- /opt/node/bin/node /opt/clamp/startup/clamp-http-proxy.mjs "${DOMAIN_SOURCES[@]}" \
         >> "$NETWORK_LOG_FILE" 2>&1 &
 echo $! > "$PROXY_PID_FILE"
 

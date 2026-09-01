@@ -120,7 +120,7 @@ if [ "$NO_FIREWALL" = true ]; then
         sed -i '/"WebSearch"/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
     fi
     # OpenCode: no permission cleanup needed for no-firewall mode
-    /usr/local/bin/init-firewall.sh --allow-all
+    /opt/clamp/startup/init-firewall.sh --allow-all
 else
     if ! find /opt/clamp-shared/allowed-domains.d -maxdepth 1 -type f -name '*.txt' 2>/dev/null | grep -q .; then
         echo "No allowed-domain files found in /opt/clamp-shared/allowed-domains.d."
@@ -131,7 +131,7 @@ else
             *) echo "Startup cancelled."; exit 1 ;;
         esac
     fi
-    /usr/local/bin/init-firewall.sh /opt/clamp-shared/allowed-domains.d
+    /opt/clamp/startup/init-firewall.sh /opt/clamp-shared/allowed-domains.d
 fi
 
 if [ ${#AGENT_CMD[@]} -eq 0 ]; then

@@ -11,6 +11,7 @@ This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog]
 === Changed
 
 * Network allowlists now use explicit `host:port` entries, exact host matching, and resolved IP+port firewall entries.
+* Separate startup scripts from command shims: startup scripts now install under `/opt/clamp/startup/`, while command shims such as `xdg-open` stay in `/usr/local/bin/`.
 
 === Fixed
 

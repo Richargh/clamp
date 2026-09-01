@@ -497,7 +497,7 @@ clamp_run() {
         -e "CLAMP_CONTAINER_USER=$CLAMP_CONTAINER_USER" \
         -e "CLAMP_NETWORK_LOG_FILE=$session_log_container" \
         "$CLAMP_IMAGE_NAME" \
-        /usr/local/bin/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"; then
+        /opt/clamp/startup/container-startup.sh "${startup_args[@]}" -- bash -c "$final_cmd"; then
         runtime_status=0
     else
         runtime_status=$?
