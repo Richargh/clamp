@@ -6,7 +6,7 @@ This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog]
 
 === Added
 
-* Network request logging remains active in `--no-firewall` sessions by keeping permissive firewall/DNS/proxy logging hooks installed.
+* Network activity is logged even for `--no-firewall` sessions by keeping permissive firewall/DNS/proxy logging hooks installed.
 
 === Changed
 
