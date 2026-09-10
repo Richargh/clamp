@@ -268,6 +268,7 @@ clamp_log_config() {
 
     clamp_print_header "Clamp User Config"
     clamp_print_text 'Auth: %s' "$auth"
+    clamp_print_text 'Auth Config: %s' "$CLAMP_AUTH_CONFIG"
     echo ""
     clamp_print_header "Clamp CLI Config"
     clamp_print_text 'Coding Agent: %s' "$CLAMP_TOOL_NAME"
