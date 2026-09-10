@@ -1,7 +1,7 @@
 # hadolint ignore=DL3006
 FROM clamp-base
 
-ARG PI_VERSION=0.84.1
+ARG PI_VERSION=0.84.4
 ARG USERNAME=dev
 
 ENV PI_SKIP_VERSION_CHECK=1 \
