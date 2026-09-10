@@ -50,6 +50,16 @@ clamp_print_text() {
     fi
 }
 
+clamp_print_warning() {
+    if [ -t 2 ]; then
+        printf '\033[1;33m[Warning]\033[0m ' >&2
+    else
+        printf '[Warning] ' >&2
+    fi
+    printf "$@" >&2
+    printf '\n' >&2
+}
+
 CLAMP_SHELL_MODE=false
 CLAMP_FOLDER=""
 CLAMP_RUNTIME="docker"
@@ -277,16 +287,51 @@ clamp_log_config() {
     echo ""
 }
 
+clamp_write_project_dockerfile_header() {
+    local base_image="$1"
+
+    # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
+    printf 'ARG CLAMP_TOOL_IMAGE=%s
+FROM ${CLAMP_TOOL_IMAGE}
+
+ARG USERNAME=dev
+
+COPY .clamp/allowed-domains.d/ /opt/clamp-shared/allowed-domains.d/
+
+USER $USERNAME
+WORKDIR /workspace
+
+' "$base_image"
+}
+
+clamp_write_project_dockerignore_additions() {
+    local workspace="$1"
+
+    printf '# Include build-context files referenced by .clamp/clamp.Dockerfile.
+# Clamp already includes .clamp/**.
+#
+# Examples:
+# !mise.toml
+# !requirements.txt
+# !src/
+# !src/**
+'
+
+    if [ -f "$workspace/mise.toml" ]; then
+        printf '\n!mise.toml\n'
+    fi
+}
+
 clamp_create_project_dockerfile() {
-    local workspace project_dockerfile base_image project_allowed_domains_dir default_allowed_domains_dir printed_project_setup
+    local workspace project_dockerfile project_dockerignore project_allowed_domains_dir default_allowed_domains_dir printed_project_setup
 
     printed_project_setup=false
 
     workspace="$1"
     project_dockerfile="$workspace/.clamp/clamp.Dockerfile"
+    project_dockerignore="$workspace/.clamp/clamp.Dockerfile.dockerignore"
     project_allowed_domains_dir="$workspace/.clamp/allowed-domains.d"
     default_allowed_domains_dir="$CLAMP_SCRIPT_DIR/clamp-shared/allowed-domains.d"
-    base_image="clamp-${CLAMP_HARNESS}"
 
     mkdir -p "$workspace/.clamp"
 
@@ -301,12 +346,24 @@ clamp_create_project_dockerfile() {
         clamp_print_text 'Review this directory and delete domain files this project should not allow.'
     fi
 
+    if [ ! -f "$project_dockerignore" ]; then
+        clamp_write_project_dockerignore_additions "$workspace" > "$project_dockerignore"
+        if [ "$printed_project_setup" = false ]; then
+            clamp_print_header "Clamp Project Setup"
+            printed_project_setup=true
+        fi
+        clamp_print_text 'Created project Dockerignore additions: %s' "$project_dockerignore"
+    fi
+
     if [ -f "$project_dockerfile" ]; then
         if [ "$printed_project_setup" = false ]; then
             clamp_print_header "Clamp Project Setup"
             printed_project_setup=true
         fi
-        clamp_print_text 'Using project Dockerfile: %s' "$project_dockerfile"
+        clamp_print_text 'Using project Dockerfile additions: %s' "$project_dockerfile"
+        if grep -Eq '^[[:space:]]*FROM[[:space:]]+' "$project_dockerfile"; then
+            clamp_print_warning 'This is a legacy complete Dockerfile; remove its standard Clamp header to use the dynamic header.'
+        fi
         if [ -f "$workspace/mise.toml" ] && ! grep -q 'mise install -C /tmp' "$project_dockerfile"; then
             clamp_print_text 'Note: mise.toml exists, but this Dockerfile does not install mise tools.'
             clamp_print_text 'Add the mise install block to the Dockerfile, or delete it to regenerate.'
@@ -315,27 +372,31 @@ clamp_create_project_dockerfile() {
         return
     fi
 
-    {
-        # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
-        printf 'ARG CLAMP_TOOL_IMAGE=%s
-FROM ${CLAMP_TOOL_IMAGE}
-
-ARG USERNAME=dev
-
-COPY .clamp/allowed-domains.d/ /opt/clamp-shared/allowed-domains.d/
-
+    # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
+    printf '# Clamp prepends the base image automatically.
+#
+USER root
+# Add system packages as needed here, for example:
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     <package> \
+#     && rm -rf /var/lib/apt/lists/*
 USER $USERNAME
-WORKDIR /workspace
-' "$base_image"
 
-        if [ -f "$workspace/mise.toml" ]; then
-            # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
-            printf '
+# Other examples:
+# COPY --chown=$USERNAME:$USERNAME mise.toml /tmp/mise.toml
+# RUN mise install -C /tmp
+# COPY --chown=$USERNAME:$USERNAME requirements.txt /tmp/requirements.txt
+# RUN pip install --user -r /tmp/requirements.txt
+# RUN npm install --global <package>
+' > "$project_dockerfile"
+
+    if [ -f "$workspace/mise.toml" ]; then
+        # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
+        printf '
 COPY --chown=$USERNAME:$USERNAME mise.toml /tmp/mise.toml
 RUN mise install -C /tmp
-'
-        fi
-    } > "$project_dockerfile"
+' >> "$project_dockerfile"
+    fi
 
     if [ "$printed_project_setup" = false ]; then
         clamp_print_header "Clamp Project Setup"
@@ -343,6 +404,37 @@ RUN mise install -C /tmp
     clamp_print_text 'Created project Dockerfile: %s' "$project_dockerfile"
     echo ""
 }
+
+clamp_build_project_image() (
+    local project_dockerfile="$1"
+    local tool_image_name="$2"
+    local project_image_name="$3"
+    local workspace="$4"
+    local project_dockerignore="$workspace/.clamp/clamp.Dockerfile.dockerignore"
+    local project_build_dockerfile project_build_dockerignore
+    shift 4
+    local -a runtime_build_opts=("$@")
+
+    # A FROM instruction identifies the legacy complete-Dockerfile format.
+    if grep -Eq '^[[:space:]]*FROM[[:space:]]+' "$project_dockerfile"; then
+        project_build_dockerfile="$project_dockerfile"
+    else
+        project_build_dockerfile="$(mktemp "$workspace/.clamp/clamp.generated.XXXXXX")"
+        project_build_dockerignore="${project_build_dockerfile}.dockerignore"
+        trap 'rm -f "$project_build_dockerfile" "$project_build_dockerignore"' EXIT
+        clamp_write_project_dockerfile_header "$tool_image_name" > "$project_build_dockerfile"
+        cat "$project_dockerfile" >> "$project_build_dockerfile"
+
+        # Restrict the build context to Clamp's files plus the paths explicitly
+        # included alongside the user's project Dockerfile additions.
+        printf '*\n!.clamp/\n!.clamp/**\n' > "$project_build_dockerignore"
+        if [ -f "$project_dockerignore" ]; then
+            cat "$project_dockerignore" >> "$project_build_dockerignore"
+        fi
+    fi
+
+    "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_build_dockerfile" -t "$project_image_name" "$workspace"
+)
 
 clamp_build_image() {
     local tool_dockerfile base_dockerfile workspace project_key project_dockerfile project_image_name tool_image_name
@@ -403,7 +495,7 @@ clamp_build_image() {
     clamp_print_text 'Image: %s' "$project_image_name"
     clamp_print_text 'Dockerfile: %s' ".clamp/clamp.Dockerfile"
     clamp_print_text 'Why: Clamp builds a per-project image so project Dockerfile changes, allowed-domain files, and tool setup are applied before the agent starts.'
-    "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE --build-arg "CLAMP_TOOL_IMAGE=$tool_image_name" -f "$project_dockerfile" -t "$project_image_name" "$workspace"
+    clamp_build_project_image "$project_dockerfile" "$tool_image_name" "$project_image_name" "$workspace" "${runtime_build_opts[@]}" || return $?
     echo ""
 }
 
