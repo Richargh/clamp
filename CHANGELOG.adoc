@@ -16,6 +16,7 @@ This project follows link:https://keepachangelog.com/en/1.1.0/[Keep a Changelog]
 
 === Fixed
 
+* Include `libatomic1` in the base image so mise-installed Node.js versions that require `libatomic.so.1` can start, including Node.js 26.12.1 on ARM64.
 * Project image builds use a generated Dockerfile-specific ignore file, including only `.clamp/**` and paths declared in `.clamp/clamp.Dockerfile.dockerignore`, instead of depending on the project's root `.dockerignore`.
 * Shutdown network summaries now use the session log from the Clamp run that just exited instead of guessing the most recent log.
 * Firewall startup on lightweight guest kernels by falling back from `iptables-nft` to `iptables-legacy` when required.

@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep=13.0.0-4+b2 \
     zip=3.0-13 \
     unzip=6.0-28 \
+    libatomic1=12.2.0-14+deb12u* \
     libglib2.0-0=2.74.6-2+deb12u* \
     libnspr4=2:4.35-1 \
     libnss3=2:3.87.1-1+deb12u* \
@@ -34,6 +35,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrandr2=2:1.5.2-2+b1 \
     libgbm1=22.3.6-1+deb12u* \
     libcairo2=1.16.0-7 \
+    libasound2=1.2.8-1+b1 \
+    libpangocairo-1.0 \
     libpango-1.0-0=1.50.12+ds-1 \
     shellcheck=0.9.0-1 \
     && ln -s /usr/bin/fdfind /usr/local/bin/fd \
