@@ -27,6 +27,17 @@
     "automerge": true
   },
   "commitMessagePrefix": "^ E(deps)",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.Dockerfile$/"],
+      "matchStrings": [
+        "# renovate: datasource=npm depName=(?<depName>[^\\s]+)\\s+ARG [A-Z_]+_VERSION=(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "semver"
+    }
+  ],
   "packageRules": [
     {
       "matchManagers": ["dockerfile"],

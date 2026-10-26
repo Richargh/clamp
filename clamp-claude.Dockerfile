@@ -1,6 +1,7 @@
 # hadolint ignore=DL3006
 FROM clamp-base
 
+# renovate: datasource=npm depName=@anthropic-ai/claude-code
 ARG CLAUDE_CODE_VERSION=2.1.138
 ARG USERNAME=dev
 

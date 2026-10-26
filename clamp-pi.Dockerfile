@@ -1,6 +1,7 @@
 # hadolint ignore=DL3006
 FROM clamp-base
 
+# renovate: datasource=npm depName=@earendil-works/pi-coding-agent
 ARG PI_VERSION=0.84.4
 ARG USERNAME=dev
 

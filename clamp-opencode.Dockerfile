@@ -1,6 +1,7 @@
 # hadolint ignore=DL3006
 FROM clamp-base
 
+# renovate: datasource=npm depName=opencode-ai
 ARG OPENCODE_VERSION=1.2.27
 ARG USERNAME=dev
 
