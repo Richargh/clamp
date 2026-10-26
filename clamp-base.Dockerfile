@@ -49,6 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG USERNAME=dev
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
+# renovate: datasource=node-version depName=node
 ARG NODE_VERSION=24.13.0
 
 # Install mise
