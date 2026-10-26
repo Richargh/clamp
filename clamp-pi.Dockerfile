@@ -8,7 +8,7 @@ ARG CONTAINER_USER=dev
 ENV PI_SKIP_VERSION_CHECK=1 \
     PI_TELEMETRY=0
 
-USER root
+USER 0
 # Keep Pi packages on the same patch version. pi-coding-agent uses caret
 # dependencies for these packages, and mixing 0.75.3 with newer pi-ai
 # breaks GitHub Copilot login callbacks.

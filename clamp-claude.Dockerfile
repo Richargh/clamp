@@ -5,7 +5,7 @@ FROM clamp-base
 ARG CLAUDE_CODE_VERSION=2.1.138
 ARG CONTAINER_USER=dev
 
-USER root
+USER 0
 RUN HOME=/root npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 ENV DISABLE_AUTOUPDATER=1
