@@ -21,11 +21,11 @@ print_header() {
 print_text() {
     if [ -t 1 ]; then
         printf '\033[90m  '
-        printf "$@"
+        printf '%s' "$@"
         printf '\033[0m\n'
     else
         printf '  '
-        printf "$@"
+        printf '%s' "$@"
         printf '\n'
     fi
 }
@@ -194,10 +194,10 @@ if [ "$FIREWALL_ALLOW_ALL" = true ]; then
 else
     print_text 'Status: Initialized with allowlist enforcement'
 fi
-print_text 'Backend: %s' "$IPTABLES"
+print_text "Backend: $IPTABLES"
 print_text 'DNS: 127.0.0.1:53'
 print_text 'HTTP(S) Proxy: http://127.0.0.1:8888'
-print_text 'Network Log: %s' "$NETWORK_LOG_FILE"
-print_text 'Upstream DNS: %s' "$UPSTREAM_DNS"
+print_text "Network Log: $NETWORK_LOG_FILE"
+print_text "Upstream DNS: $UPSTREAM_DNS"
 WHITELISTED_ENDPOINT_COUNT="$(ipset list allowed_endpoints 2>/dev/null | grep -c '^[0-9]' || true)"
-print_text 'Whitelisted Endpoints: %s' "${WHITELISTED_ENDPOINT_COUNT:-0}"
+print_text "Whitelisted Endpoints: ${WHITELISTED_ENDPOINT_COUNT:-0}"

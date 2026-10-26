@@ -41,11 +41,11 @@ clamp_print_header() {
 clamp_print_text() {
     if [ -t 1 ]; then
         printf '\033[90m  '
-        printf "$@"
+        printf '%s' "$@"
         printf '\033[0m\n'
     else
         printf '  '
-        printf "$@"
+        printf '%s' "$@"
         printf '\n'
     fi
 }
@@ -56,7 +56,7 @@ clamp_print_warning() {
     else
         printf '[Warning] ' >&2
     fi
-    printf "$@" >&2
+    printf '%s' "$@" >&2
     printf '\n' >&2
 }
 
@@ -277,13 +277,13 @@ clamp_log_config() {
     fi
 
     clamp_print_header "Clamp User Config"
-    clamp_print_text 'Auth: %s' "$auth"
-    clamp_print_text 'Auth Config: %s' "$CLAMP_AUTH_CONFIG"
+    clamp_print_text "Auth: $auth"
+    clamp_print_text "Auth Config: $CLAMP_AUTH_CONFIG"
     echo ""
     clamp_print_header "Clamp CLI Config"
-    clamp_print_text 'Coding Agent: %s' "$CLAMP_TOOL_NAME"
-    clamp_print_text 'Runtime: %s' "$runtime"
-    clamp_print_text 'Firewall: %s' "$firewall"
+    clamp_print_text "Coding Agent: $CLAMP_TOOL_NAME"
+    clamp_print_text "Runtime: $runtime"
+    clamp_print_text "Firewall: $firewall"
     echo ""
 }
 
@@ -342,7 +342,7 @@ clamp_create_project_dockerfile() {
         fi
         clamp_print_header "Clamp Project Setup"
         printed_project_setup=true
-        clamp_print_text 'Created allowed domains directory: %s' "$project_allowed_domains_dir"
+        clamp_print_text "Created allowed domains directory: $project_allowed_domains_dir"
         clamp_print_text 'Review this directory and delete domain files this project should not allow.'
     fi
 
@@ -352,7 +352,7 @@ clamp_create_project_dockerfile() {
             clamp_print_header "Clamp Project Setup"
             printed_project_setup=true
         fi
-        clamp_print_text 'Created project Dockerignore additions: %s' "$project_dockerignore"
+        clamp_print_text "Created project Dockerignore additions: $project_dockerignore"
     fi
 
     if [ -f "$project_dockerfile" ]; then
@@ -360,7 +360,7 @@ clamp_create_project_dockerfile() {
             clamp_print_header "Clamp Project Setup"
             printed_project_setup=true
         fi
-        clamp_print_text 'Using project Dockerfile additions: %s' "$project_dockerfile"
+        clamp_print_text "Using project Dockerfile additions: $project_dockerfile"
         if grep -Eq '^[[:space:]]*FROM[[:space:]]+' "$project_dockerfile"; then
             clamp_print_warning 'This is a legacy complete Dockerfile; remove its standard Clamp header to use the dynamic header.'
         fi
@@ -401,7 +401,7 @@ RUN mise install -C /tmp
     if [ "$printed_project_setup" = false ]; then
         clamp_print_header "Clamp Project Setup"
     fi
-    clamp_print_text 'Created project Dockerfile: %s' "$project_dockerfile"
+    clamp_print_text "Created project Dockerfile: $project_dockerfile"
     echo ""
 }
 
@@ -469,9 +469,9 @@ clamp_build_image() {
     # Build base if needed
     if [ "$CLAMP_REBUILD" = true ] || ! "$CLAMP_RUNTIME" image inspect "$CLAMP_BASE_IMAGE_NAME" &>/dev/null; then
         clamp_print_header "Clamp Image Build"
-        clamp_print_text 'Tool: %s' "$build_tool"
-        clamp_print_text 'Image: %s' "$CLAMP_BASE_IMAGE_NAME"
-        clamp_print_text 'Dockerfile: %s' "clamp-base.Dockerfile"
+        clamp_print_text "Tool: $build_tool"
+        clamp_print_text "Image: $CLAMP_BASE_IMAGE_NAME"
+        clamp_print_text 'Dockerfile: clamp-base.Dockerfile'
         "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE -f "$base_dockerfile" -t "$CLAMP_BASE_IMAGE_NAME" "$CLAMP_SCRIPT_DIR"
         echo ""
     fi
@@ -479,9 +479,9 @@ clamp_build_image() {
     # Build tool image if needed
     if [ "$CLAMP_REBUILD" = true ] || ! "$CLAMP_RUNTIME" image inspect "$tool_image_name" &>/dev/null; then
         clamp_print_header "Clamp Image Build"
-        clamp_print_text 'Tool: %s' "$build_tool"
-        clamp_print_text 'Image: %s' "$tool_image_name"
-        clamp_print_text 'Dockerfile: %s' "clamp-${CLAMP_HARNESS}.Dockerfile"
+        clamp_print_text "Tool: $build_tool"
+        clamp_print_text "Image: $tool_image_name"
+        clamp_print_text "Dockerfile: clamp-${CLAMP_HARNESS}.Dockerfile"
         "$CLAMP_RUNTIME" build "${runtime_build_opts[@]}" $CLAMP_NO_CACHE -f "$tool_dockerfile" -t "$tool_image_name" "$CLAMP_SCRIPT_DIR"
         echo ""
     fi
@@ -491,9 +491,9 @@ clamp_build_image() {
     # Always run the project build so edits to .clamp/clamp.Dockerfile are picked up;
     # The runtime's layer cache keeps the no-change path fast.
     clamp_print_header "Clamp Image Build"
-    clamp_print_text 'Tool: %s' "$build_tool"
-    clamp_print_text 'Image: %s' "$project_image_name"
-    clamp_print_text 'Dockerfile: %s' ".clamp/clamp.Dockerfile"
+    clamp_print_text "Tool: $build_tool"
+    clamp_print_text "Image: $project_image_name"
+    clamp_print_text 'Dockerfile: .clamp/clamp.Dockerfile'
     clamp_print_text 'Why: Clamp builds a per-project image so project Dockerfile changes, allowed-domain files, and tool setup are applied before the agent starts.'
     clamp_build_project_image "$project_dockerfile" "$tool_image_name" "$project_image_name" "$workspace" "${runtime_build_opts[@]}" || return $?
     echo ""
