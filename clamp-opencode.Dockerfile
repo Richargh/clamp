@@ -3,14 +3,14 @@ FROM clamp-base
 
 # renovate: datasource=npm depName=opencode-ai
 ARG OPENCODE_VERSION=1.2.27
-ARG USERNAME=dev
+ARG CONTAINER_USER=dev
 
 USER root
 RUN HOME=/root npm install -g opencode-ai@${OPENCODE_VERSION}
 
 ENV OPENCODE_DISABLE_AUTOUPDATE=1
 
-COPY --chown=$USERNAME:$USERNAME opencode-clamp-core /opt/opencode-config
-RUN mkdir -p /home/$USERNAME/.local/share/opencode && chown -R $USERNAME:$USERNAME /home/$USERNAME/.local
+COPY --chown=$CONTAINER_USER:$CONTAINER_USER opencode-clamp-core /opt/opencode-config
+RUN mkdir -p /home/$CONTAINER_USER/.local/share/opencode && chown -R $CONTAINER_USER:$CONTAINER_USER /home/$CONTAINER_USER/.local
 
-USER $USERNAME
+USER $CONTAINER_USER

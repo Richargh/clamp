@@ -3,7 +3,7 @@ FROM clamp-base
 
 # renovate: datasource=npm depName=@earendil-works/pi-coding-agent
 ARG PI_VERSION=0.84.4
-ARG USERNAME=dev
+ARG CONTAINER_USER=dev
 
 ENV PI_SKIP_VERSION_CHECK=1 \
     PI_TELEMETRY=0
@@ -18,7 +18,7 @@ RUN HOME=/root npm install -g \
     @earendil-works/pi-ai@${PI_VERSION} \
     @earendil-works/pi-tui@${PI_VERSION}
 
-COPY --chown=$USERNAME:$USERNAME clamp-pi /opt/pi-config
-RUN mkdir -p /home/$USERNAME/.pi && chown $USERNAME:$USERNAME /home/$USERNAME/.pi
+COPY --chown=$CONTAINER_USER:$CONTAINER_USER clamp-pi /opt/pi-config
+RUN mkdir -p /home/$CONTAINER_USER/.pi && chown $CONTAINER_USER:$CONTAINER_USER /home/$CONTAINER_USER/.pi
 
-USER $USERNAME
+USER $CONTAINER_USER

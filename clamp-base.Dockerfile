@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && chmod +x /usr/local/bin/hadolint \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ARG USERNAME=dev
+ARG CONTAINER_USER=dev
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 # renovate: datasource=node-version depName=node
@@ -62,18 +62,18 @@ RUN export MISE_YES=1 MISE_DATA_DIR=/opt/mise MISE_CONFIG_DIR=/etc/mise MISE_CAC
     && mise install node@${NODE_VERSION} \
     && ln -s "$(mise where node@${NODE_VERSION})" /opt/node
 
-ENV HOME=/home/$USERNAME \
-    PATH=/home/$USERNAME/.local/share/mise/shims:/opt/node/bin:$PATH
+ENV HOME=/home/$CONTAINER_USER \
+    PATH=/home/$CONTAINER_USER/.local/share/mise/shims:/opt/node/bin:$PATH
 
 # Create non-root user and workspace
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+RUN groupadd --gid $USER_GID $CONTAINER_USER \
+    && useradd --uid $USER_UID --gid $USER_GID -m $CONTAINER_USER \
     && useradd --system --gid $USER_GID --no-create-home --shell /usr/sbin/nologin clamp-proxy \
-    && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$USERNAME/.gradle \
-    && chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME
+    && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$CONTAINER_USER/.gradle \
+    && chown -R $CONTAINER_USER:$CONTAINER_USER /workspace /home/$CONTAINER_USER
 
 COPY startup-scripts/ /opt/clamp/startup/
 COPY clamp-shared/container-bin/ /usr/local/bin/
 
 WORKDIR /workspace
-USER $USERNAME
+USER $CONTAINER_USER

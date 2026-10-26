@@ -294,11 +294,11 @@ clamp_write_project_dockerfile_header() {
     printf 'ARG CLAMP_TOOL_IMAGE=%s
 FROM ${CLAMP_TOOL_IMAGE}
 
-ARG USERNAME=dev
+ARG CONTAINER_USER=dev
 
 COPY .clamp/allowed-domains.d/ /opt/clamp-shared/allowed-domains.d/
 
-USER $USERNAME
+USER $CONTAINER_USER
 WORKDIR /workspace
 
 ' "$base_image"
@@ -375,17 +375,17 @@ clamp_create_project_dockerfile() {
     # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
     printf '# Clamp prepends the base image automatically.
 #
-USER root
+USER 0
 # Add system packages as needed here, for example:
 # RUN apt-get update && apt-get install -y --no-install-recommends \
 #     <package> \
 #     && rm -rf /var/lib/apt/lists/*
-USER $USERNAME
+USER $CONTAINER_USER
 
 # Other examples:
-# COPY --chown=$USERNAME:$USERNAME mise.toml /tmp/mise.toml
+# COPY --chown=$CONTAINER_USER:$CONTAINER_USER mise.toml /tmp/mise.toml
 # RUN mise install -C /tmp
-# COPY --chown=$USERNAME:$USERNAME requirements.txt /tmp/requirements.txt
+# COPY --chown=$CONTAINER_USER:$CONTAINER_USER requirements.txt /tmp/requirements.txt
 # RUN pip install --user -r /tmp/requirements.txt
 # RUN npm install --global <package>
 ' > "$project_dockerfile"
@@ -393,7 +393,7 @@ USER $USERNAME
     if [ -f "$workspace/mise.toml" ]; then
         # shellcheck disable=SC2016 # Keep Dockerfile ARG references literal.
         printf '
-COPY --chown=$USERNAME:$USERNAME mise.toml /tmp/mise.toml
+COPY --chown=$CONTAINER_USER:$CONTAINER_USER mise.toml /tmp/mise.toml
 RUN mise install -C /tmp
 ' >> "$project_dockerfile"
     fi
