@@ -1,0 +1,46 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - depguard
+    - forbidigo
+  settings:
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: '^os\.Stdout$'
+          msg: Use Env.Stdout instead of process stdout.
+        - pattern: '^fmt\.Print(f|ln)?$'
+          msg: Use fmt.Fprint, fmt.Fprintf, or fmt.Fprintln with Env.Stdout.
+        - pattern: '^(print|println)$'
+          msg: Use an explicit writer from Env instead of built-in printing.
+    depguard:
+      rules:
+        kernel-dependency-direction:
+          list-mode: lax
+          files:
+            - "**/internal/kernel/**/*.go"
+          allow:
+            - github.com/richargh/clamp/mitm-proxy/internal/kernel$
+            - github.com/richargh/clamp/mitm-proxy/internal/kernel/
+          deny:
+            - pkg: github.com/richargh/clamp/mitm-proxy/
+              desc: Kernel packages must not import application packages.
+        os-adapter-boundary:
+          list-mode: lax
+          files:
+            - $all
+            - "!$test"
+            - "!**/internal/kernel/**/os*.go"
+            - "!**/cmd/**/main.go"
+          deny:
+            - pkg: os$
+              desc: Use the injected environment; os is limited to OS adapters, entry points, and tests.
+            - pkg: os/
+              desc: OS subpackages are limited to OS adapters, entry points, and tests.
+  exclusions:
+    rules:
+      - path: '(^|/)internal/kernel/environment/osenv\.go$|_test\.go$'
+        linters:
+          - forbidigo

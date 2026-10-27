@@ -16,6 +16,8 @@
 !clamp-pi
 !clamp-pi/**
 
+!dev-scripts/
+!dev-scripts/**
 !startup-scripts/
 !startup-scripts/**
 !shutdown-scripts/
@@ -23,6 +25,15 @@
 
 !.dockerignore
 !.gitignore
+!mise.toml
+
+!AGENTS.md
+!AI_POLICY.md
+!.agents/
+!.agents/**
+
+!mitm-proxy/
+!mitm-proxy/**
 
 !clamp-claude.sh
 !clamp-open-code.sh
@@ -37,6 +48,7 @@
 !VERSION
 
 !Customization.adoc
+!CONTRIBUTING.adoc
 !README.adoc
 !renovate.json
 !UNLICENSE
