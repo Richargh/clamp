@@ -2,7 +2,7 @@
 FROM clamp-base
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.138
+ARG CLAUDE_CODE_VERSION=2.1.312
 ARG CONTAINER_USER=dev
 
 USER 0
