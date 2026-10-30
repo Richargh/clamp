@@ -50,7 +50,7 @@ ARG CONTAINER_USER=dev
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 # renovate: datasource=node-version depName=node
-ARG NODE_VERSION=24.22.1
+ARG NODE_VERSION=24.22.2
 
 # Install mise
 RUN curl -fsSL https://mise.run -o /tmp/mise-install.sh \
