@@ -2,7 +2,7 @@
 FROM clamp-base
 
 # renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.2.27
+ARG OPENCODE_VERSION=1.19.5
 ARG CONTAINER_USER=dev
 
 USER 0
