@@ -16,7 +16,7 @@ import (
 func TestNewCommandDoesNotReuseParsedFlags(t *testing.T) {
 	env := listenFailureEnvironment(t)
 	first := New(*env)
-	if err := first.Run(t.Context(), []string{"serve", "--listen=127.0.0.1:0"}); err == nil || !strings.Contains(err.Error(), "listen:") {
+	if err := first.Run(t.Context(), []string{"serve", "--listen=127.0.0.1:0", "--no-firewall"}); err == nil || !strings.Contains(err.Error(), "listen:") {
 		t.Fatalf("expected injected listen failure, got %v", err)
 	}
 	second := New(*env)
@@ -126,7 +126,7 @@ func TestInvalidArguments(t *testing.T) {
 func TestServeReturnsRuntimeErrors(t *testing.T) {
 	for _, flag := range []string{"--ignore-proxy-env=false", "--ignore-proxy-env"} {
 		t.Run(flag, func(t *testing.T) {
-			_, err := execute(t, "serve", "--listen", "127.0.0.1:0", flag)
+			_, err := execute(t, "serve", "--listen", "127.0.0.1:0", "--no-firewall", flag)
 			if err == nil || !strings.Contains(err.Error(), "listen:") {
 				t.Fatalf("expected listen error, got %v", err)
 			}

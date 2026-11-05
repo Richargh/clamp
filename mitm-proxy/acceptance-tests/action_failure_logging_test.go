@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,7 @@ func TestActionFailureLogging(t *testing.T) {
 			request.Close = true
 			var output LogBuffer
 			env.Stdout = &output
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			if scenario.method == http.MethodConnect {

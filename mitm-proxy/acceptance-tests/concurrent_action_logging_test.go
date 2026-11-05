@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ func TestConcurrentActionLogging(t *testing.T) {
 		destination.RespondWith(http.StatusNoContent, nil, "")
 		var output LogBuffer
 		env.Stdout = &output
-		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 		var done sync.WaitGroup
 
 		// when

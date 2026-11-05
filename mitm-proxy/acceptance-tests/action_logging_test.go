@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestHTTPActionLogging(t *testing.T) {
 		request.Header.Set("Cookie", "session="+secret)
 		var output LogBuffer
 		env.Stdout = &output
-		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 		// when
 		ExecuteHTTPRequest(testee.ServeHTTP, request)

@@ -33,7 +33,7 @@ func NewHost(value string) (Host, error) {
 			}
 		}
 	}
-	return Host{value: strings.ToLower(value)}, nil
+	return Host{value: strings.ToLower(name)}, nil
 }
 
 func (h Host) String() string { return h.value }

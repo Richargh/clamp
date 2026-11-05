@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,7 @@ func TestProxySelection(t *testing.T) {
 				selections.Add(1)
 				return nil, nil
 			},
+			AllowedDomains: alloweddomains.AllowAll(),
 		})
 
 		// when
@@ -45,6 +47,7 @@ func TestProxySelection(t *testing.T) {
 				selections.Add(1)
 				return nil, nil
 			},
+			AllowedDomains: alloweddomains.AllowAll(),
 		})
 		proxy := ServeHandler(t, env, testee)
 		conn := Connection(t, env, proxy)

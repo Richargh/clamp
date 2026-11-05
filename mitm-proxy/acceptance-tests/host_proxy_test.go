@@ -3,6 +3,7 @@ package acceptance_test
 import (
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestHTTPHostProxyRouting(t *testing.T) {
 				config = httpproxy.Config{HTTPProxy: upstream.URL, NoProxy: scenario.noProxy}
 			}
 			request := NewPOSTRequest(destination.URLFor("/"), "")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc()})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc(), AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			ExecuteHTTPRequest(testee.ServeHTTP, request)
@@ -66,7 +67,7 @@ func TestHTTPSHostProxyRouting(t *testing.T) {
 				config = httpproxy.Config{HTTPSProxy: upstream.URL, NoProxy: scenario.noProxy}
 			}
 			request := NewPOSTRequest(destination.URLFor("/"), "")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc()})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc(), AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			ExecuteHTTPSRequest(testee.Serve, t, env, request, destination)

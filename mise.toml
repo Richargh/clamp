@@ -4,12 +4,17 @@ golangci-lint = ["2.15.0"]
 shellcheck = ["0.11.0"]
 
 [tasks.check]
-description = "Format, vet, lint, and test the proxy and shell scripts"
+description = "Check both Go tools and the shell scripts"
+depends = ["check:mitm-proxy"]
+dir = "{{config_root}}"
+run = "./dev-scripts/check-shellcheck.sh"
+
+[tasks."check:mitm-proxy"]
+description = "Format, vet, lint, and test the proxy"
 dir = "{{config_root}}/mitm-proxy"
 run = [
     "go fmt ./...",
     "go vet ./...",
     "golangci-lint run",
     "go test ./...",
-    "../dev-scripts/check-shellcheck.sh",
 ]

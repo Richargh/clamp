@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
+	filesystem "github.com/richargh/clamp/mitm-proxy/internal/kernel/fs"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/http/httpproxy"
 )
@@ -43,17 +46,42 @@ func newCommand(env environment.Env) *cobra.Command {
 func configureCommands(root *cobra.Command, env environment.Env) {
 	var listenAddress string
 	var ignoreProxyEnv bool
+	var allowedDomainsDir string
+	enableFirewall := true
 	serve := &cobra.Command{
 		Use:   "serve",
 		Short: "Forward HTTP and tunnel HTTPS without TLS interception",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			handler := forwardproxy.NewHandler(&env, forwardproxy.Options{Proxy: proxyFromEnvironment(ignoreProxyEnv)})
+			allowed := alloweddomains.AllowAll()
+			if enableFirewall {
+				if strings.TrimSpace(allowedDomainsDir) == "" {
+					return fmt.Errorf("--allowed-domains-dir is required unless --no-firewall is set")
+				}
+				directory, err := filesystem.ParsePath(allowedDomainsDir)
+				if err != nil {
+					return fmt.Errorf("allowed domains: %w", err)
+				}
+				allowed, err = alloweddomains.Load(env.FileSystem, directory)
+				if err != nil {
+					return err
+				}
+			}
+			handler := forwardproxy.NewHandler(&env, forwardproxy.Options{Proxy: proxyFromEnvironment(ignoreProxyEnv), AllowedDomains: allowed})
 			return handler.Serve(cmd.Context(), listenAddress)
 		},
 	}
 	serve.Flags().StringVar(&listenAddress, "listen", "", "Host address and port")
 	serve.Flags().BoolVar(&ignoreProxyEnv, "ignore-proxy-env", false, "Ignore host proxy environment variables and connect directly")
+	serve.Flags().StringVar(&allowedDomainsDir, "allowed-domains-dir", "", "Folder with domain:port rules in top-level .txt files")
+	serve.Flags().BoolFunc("no-firewall", "Allow all destinations; keep request logging active", func(value string) error {
+		disabled, err := strconv.ParseBool(value)
+		if err != nil {
+			return err
+		}
+		enableFirewall = !disabled
+		return nil
+	})
 	markNonBlankFlags(serve, "listen")
 
 	root.AddCommand(serve)

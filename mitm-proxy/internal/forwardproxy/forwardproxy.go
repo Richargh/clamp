@@ -9,10 +9,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/elazarl/goproxy"
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/network"
 )
@@ -20,6 +20,8 @@ import (
 type Options struct {
 	// Proxy must be non-nil. Return nil, nil to connect directly.
 	Proxy func(*url.URL) (*url.URL, error)
+	// AllowedDomains must be explicit. A missing policy blocks every destination.
+	AllowedDomains alloweddomains.AllowedDomains
 }
 
 // ForwardHandler forwards HTTP requests and establishes opaque CONNECT tunnels.
@@ -31,8 +33,8 @@ type ForwardHandler struct {
 // NewHandler constructs a handler without opening a listener.
 // Action logs are written to env.Stdout.
 func NewHandler(env *environment.Env, options Options) *ForwardHandler {
-	transport := NewTransport(env, TransportOptions(options))
-	return &ForwardHandler{handler: newForwardProxy(transport, env.Stdout), env: env}
+	transport := NewTransport(env, TransportOptions{Proxy: options.Proxy})
+	return &ForwardHandler{handler: newForwardProxy(transport, env.Stdout, options.AllowedDomains), env: env}
 }
 
 func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -93,12 +95,14 @@ func shutdownAndWait(server *http.Server, done <-chan error) error {
 	return nil
 }
 
-func newForwardProxy(transport *http.Transport, logWriter io.Writer) *goproxy.ProxyHttpServer {
+func newForwardProxy(transport *http.Transport, logWriter io.Writer, allowed alloweddomains.AllowedDomains) *goproxy.ProxyHttpServer {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = false
 	proxy.Tr = transport
+	logger := newActionLogger(logWriter)
 	configureConnectDialer(proxy, transport)
-	configureActionLogging(proxy, logWriter)
+	configureDestinationPolicy(proxy, allowed, logger)
+	configureActionLogging(proxy, logger)
 	return proxy
 }
 
@@ -125,12 +129,4 @@ func configureConnectDialer(proxy *goproxy.ProxyHttpServer, transport *http.Tran
 		}
 		return dialViaHostProxy(network, address)
 	}
-}
-
-func validateTunnelDestination(authority string, _ *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-	host, port, err := splitAuthority(authority, 443)
-	if err != nil {
-		return goproxy.RejectConnect, authority
-	}
-	return &goproxy.ConnectAction{Action: goproxy.ConnectAccept}, net.JoinHostPort(host, strconv.Itoa(port))
 }

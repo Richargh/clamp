@@ -5,6 +5,7 @@ package forwardproxy
 import (
 	"net/url"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	implementation "github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"golang.org/x/net/http/httpproxy"
@@ -27,5 +28,5 @@ func NewHandler(options Options) *ForwardHandler {
 	if options.Proxy == nil {
 		options.Proxy = httpproxy.FromEnvironment().ProxyFunc()
 	}
-	return implementation.NewHandler(environment.NewOS(), implementation.Options(options))
+	return implementation.NewHandler(environment.NewOS(), implementation.Options{Proxy: options.Proxy, AllowedDomains: alloweddomains.AllowAll()})
 }

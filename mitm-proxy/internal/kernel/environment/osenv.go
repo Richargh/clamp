@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel"
+	"github.com/richargh/clamp/mitm-proxy/internal/kernel/fs"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/network"
 )
 
@@ -13,6 +14,7 @@ func NewOS() *Env {
 		Version: kernel.ParseClampVersion(kernel.BuildVersion),
 		Random:  rand.Reader,
 		PID:     os.Getpid(), Stdout: os.Stdout, Stderr: os.Stderr,
-		Network: network.NewOS(),
+		Network:    network.NewOS(),
+		FileSystem: fs.NewOS(),
 	}
 }

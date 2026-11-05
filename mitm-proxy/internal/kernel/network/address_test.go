@@ -11,7 +11,7 @@ import (
 func TestHostConstruction(t *testing.T) {
 	for _, test := range []struct{ input, want string }{
 		{"Example.COM", "example.com"},
-		{"example.com.", "example.com."},
+		{"example.com.", "example.com"},
 		{"localhost", "localhost"},
 		{"127.0.0.1", "127.0.0.1"},
 		{"2001:0db8::1", "2001:db8::1"},

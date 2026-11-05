@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestHTTPSTunneling(t *testing.T) {
 			destination := NewHTTPSDestinationSpy(t, env)
 			request := NewPOSTRequest(destination.URLFor("/path?query=kept"), "payload")
 			request.Header.Set("Content-Type", "text/plain")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			ExecuteHTTPSRequest(testee.Serve, t, env, request, destination)
@@ -47,7 +48,7 @@ func TestHTTPSTunneling(t *testing.T) {
 			destination := NewHTTPSDestinationSpy(t, env)
 			destination.RespondWith(http.StatusCreated, http.Header{"X-Destination": {"unchanged"}}, "destination response")
 			request := NewPOSTRequest(destination.URLFor("/"), "")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			response := RecordHTTPSResponse(testee.Serve, t, env, request, destination)
@@ -63,7 +64,7 @@ func TestHTTPSTunneling(t *testing.T) {
 			env := setup.newEnvironment(t)
 			destination := NewHTTPSDestinationSpy(t, env)
 			request := NewPOSTRequest(destination.URLFor("/"), "")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			response := RecordHTTPSResponse(testee.Serve, t, env, request, destination)
@@ -79,7 +80,7 @@ func TestHTTPSTunneling(t *testing.T) {
 			env := setup.newEnvironment(t)
 			destination := NewHTTPSDestinationSpy(t, env)
 			request := NewPOSTRequest(destination.URLFor("/"), "payload")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			response, err := ExchangeHTTPSRequest(testee.Serve, t, env, request, nil)
@@ -96,7 +97,7 @@ func TestHTTPSTunneling(t *testing.T) {
 		ForEachEnvironment(t, "Should reject CONNECT to invalid destination "+authority, func(t *testing.T, env *environment.Env) {
 			// given
 			request := httptest.NewRequest(http.MethodConnect, authority, nil)
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 			proxy := ServeHandler(t, env, testee)
 			conn := Connection(t, env, proxy)
 

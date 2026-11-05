@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func TestHostProxyCredentialWarnings(t *testing.T) {
 		env.Stdout = &output
 
 		// when
-		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc()})
+		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc(), AllowedDomains: alloweddomains.AllowAll()})
 
 		// then
 		require.NotNil(t, testee)
@@ -68,7 +69,7 @@ func TestHostProxyCredentialWarnings(t *testing.T) {
 				request.Close = true
 				var output LogBuffer
 				env.Stdout = &output
-				testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc()})
+				testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: config.ProxyFunc(), AllowedDomains: alloweddomains.AllowAll()})
 
 				// when
 				if exchange.method == http.MethodConnect {

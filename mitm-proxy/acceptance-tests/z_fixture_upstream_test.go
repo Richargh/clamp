@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ type upstreamProxySpy struct {
 func NewUpstreamProxySpy(t *testing.T, env *environment.Env) *upstreamProxySpy {
 	t.Helper()
 	spy := &upstreamProxySpy{}
-	handler := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+	handler := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 	server := Server(t, env.Network, "127.0.0.1:0", false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		spy.requests.Add(1)
 		handler.ServeHTTP(w, r)

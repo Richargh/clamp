@@ -5,9 +5,9 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strconv"
 
 	"github.com/elazarl/goproxy"
+	"github.com/richargh/clamp/mitm-proxy/internal/kernel/network"
 )
 
 func newActionLogger(writer io.Writer) *log.Logger {
@@ -17,8 +17,7 @@ func newActionLogger(writer io.Writer) *log.Logger {
 	return log.New(writer, "", log.LstdFlags)
 }
 
-func configureActionLogging(proxy *goproxy.ProxyHttpServer, writer io.Writer) {
-	logger := newActionLogger(writer)
+func configureActionLogging(proxy *goproxy.ProxyHttpServer, logger *log.Logger) {
 	// GoProxy warnings can contain raw upstream errors and request URLs.
 	proxy.Logger = log.New(io.Discard, "", 0)
 	proxy.OnResponse().DoFunc(func(response *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
@@ -29,13 +28,6 @@ func configureActionLogging(proxy *goproxy.ProxyHttpServer, writer io.Writer) {
 			logger.Printf("HTTP method=%q destination=%q status=%d", ctx.Req.Method, destination, response.StatusCode)
 		}
 		return response
-	})
-	proxy.OnRequest().HandleConnectFunc(func(authority string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-		action, destination := validateTunnelDestination(authority, ctx)
-		if action.Action == goproxy.ConnectReject {
-			logger.Printf("HTTPS CONNECT outcome=rejected")
-		}
-		return action, destination
 	})
 	dial := proxy.ConnectDialWithReq
 	proxy.ConnectDialWithReq = func(req *http.Request, networkName, address string) (net.Conn, error) {
@@ -49,14 +41,25 @@ func configureActionLogging(proxy *goproxy.ProxyHttpServer, writer io.Writer) {
 	}
 }
 
+func withConnectLogging(policy goproxy.HttpsHandler, logger *log.Logger) goproxy.HttpsHandler {
+	return goproxy.FuncHttpsHandler(func(authority string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+		action, destination := policy.HandleConnect(authority, ctx)
+		decision, ok := ctx.UserData.(destinationPolicyDecision)
+		if ok && !decision.allowed {
+			if !decision.address.IsValid() {
+				logger.Printf("HTTPS CONNECT outcome=rejected")
+			} else {
+				logger.Printf("HTTPS CONNECT destination=%q outcome=rejected", decision.address.String())
+			}
+		}
+		return action, destination
+	})
+}
+
 func httpLogDestination(req *http.Request) string {
-	defaultPort := 80
-	if req.URL.Scheme == "https" {
-		defaultPort = 443
-	}
-	host, port, err := splitAuthority(req.URL.Host, defaultPort)
+	address, err := network.AddressFromURL(req.URL)
 	if err != nil {
 		return "invalid"
 	}
-	return net.JoinHostPort(host, strconv.Itoa(port))
+	return address.String()
 }

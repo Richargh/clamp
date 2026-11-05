@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -29,7 +30,7 @@ func TestHTTPForwarding(t *testing.T) {
 			destination := NewHTTPDestinationSpy(t, env)
 			request := NewPOSTRequest(destination.URLFor("/path?query=kept"), "payload")
 			request.Header.Set("Content-Type", "text/plain")
-			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+			testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 			// when
 			ExecuteHTTPRequest(testee.ServeHTTP, request)
@@ -49,7 +50,7 @@ func TestHTTPForwarding(t *testing.T) {
 		destination := NewHTTPDestinationSpy(t, env)
 		destination.RespondWith(http.StatusCreated, http.Header{"X-Destination": {"unchanged"}}, "destination response")
 		request := NewPOSTRequest(destination.URLFor("/"), "payload")
-		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 		// when
 		response := RecordHTTPResponse(testee.ServeHTTP, request)

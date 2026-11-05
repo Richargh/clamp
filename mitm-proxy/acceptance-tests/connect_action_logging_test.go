@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/richargh/clamp/mitm-proxy/internal/alloweddomains"
 	"github.com/richargh/clamp/mitm-proxy/internal/forwardproxy"
 	"github.com/richargh/clamp/mitm-proxy/internal/kernel/environment"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func TestCONNECTActionLogging(t *testing.T) {
 		request.Header.Set("Cookie", "session="+secret)
 		var output LogBuffer
 		env.Stdout = &output
-		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 
 		// when
 		ExecuteHTTPSRequest(testee.Serve, t, env, request, destination)
@@ -43,7 +44,7 @@ func TestCONNECTActionLogging(t *testing.T) {
 		request := httptest.NewRequest(http.MethodConnect, secret+":0", nil)
 		var output LogBuffer
 		env.Stdout = &output
-		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy})
+		testee := forwardproxy.NewHandler(env, forwardproxy.Options{Proxy: DirectProxy, AllowedDomains: alloweddomains.AllowAll()})
 		proxy := ServeHandler(t, env, testee)
 		conn := Connection(t, env, proxy)
 

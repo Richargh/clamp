@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"net/url"
 	"strconv"
+	"strings"
 )
 
 type Address struct {
@@ -24,6 +26,35 @@ func AddressFromIP(ip netip.Addr, port uint16) (Address, error) {
 		return Address{}, fmt.Errorf("invalid address IP")
 	}
 	return newAddress(Host{value: ip.String()}, port)
+}
+
+func AddressFromURL(value *url.URL) (Address, error) {
+	if value == nil {
+		return Address{}, fmt.Errorf("missing address URL")
+	}
+	host, err := NewHost(value.Hostname())
+	if err != nil {
+		return Address{}, err
+	}
+	if strings.HasSuffix(value.Host, ":") {
+		return Address{}, fmt.Errorf("invalid address port")
+	}
+	portText := value.Port()
+	if portText == "" {
+		switch strings.ToLower(value.Scheme) {
+		case "http":
+			portText = "80"
+		case "https":
+			portText = "443"
+		default:
+			return Address{}, fmt.Errorf("no default address port for URL scheme")
+		}
+	}
+	port, err := strconv.ParseUint(portText, 10, 16)
+	if err != nil || port == 0 {
+		return Address{}, fmt.Errorf("invalid address port")
+	}
+	return newAddress(host, uint16(port))
 }
 
 func ParseAddress(value string) (Address, error) {
