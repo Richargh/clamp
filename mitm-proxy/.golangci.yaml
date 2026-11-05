@@ -9,6 +9,12 @@ linters:
     forbidigo:
       analyze-types: true
       forbid:
+        - pattern: '^os\.(Open|OpenFile|Create|CreateTemp|ReadFile|WriteFile|ReadDir|DirFS|Stat|Lstat|Mkdir|MkdirAll|MkdirTemp|Remove|RemoveAll|Rename|Link|Symlink|Readlink|Chmod|Chown|Lchown|Chtimes|Truncate|Chdir|Getwd|CopyFS|OpenRoot)$'
+          msg: Use the file system port in Env instead of direct host file access.
+        - pattern: '^filepath\.(Abs|EvalSymlinks|Glob|Walk|WalkDir)$'
+          msg: Use the file system port in Env instead of direct host file access.
+        - pattern: '^ioutil\.(ReadFile|WriteFile|ReadDir|TempFile|TempDir)$'
+          msg: Use the file system port in Env instead of direct host file access.
         - pattern: '^os\.Stdout$'
           msg: Use Env.Stdout instead of process stdout.
         - pattern: '^fmt\.Print(f|ln)?$'
@@ -27,6 +33,14 @@ linters:
           deny:
             - pkg: github.com/richargh/clamp/mitm-proxy/
               desc: Kernel packages must not import application packages.
+        filesystem-port-boundary:
+          list-mode: lax
+          files:
+            - $all
+            - "!**/internal/kernel/**/os*.go"
+          deny:
+            - pkg: testing/fstest$
+              desc: Use the memory FileSystem adapter for file system tests.
         os-adapter-boundary:
           list-mode: lax
           files:
@@ -41,6 +55,10 @@ linters:
               desc: OS subpackages are limited to OS adapters, entry points, and tests.
   exclusions:
     rules:
+      - path: '(^|/)internal/kernel/(.*/)?os[^/]*\.go$|_test\.go$'
+        text: 'Use the file system port in Env instead of direct host file access\.'
+        linters:
+          - forbidigo
       - path: '(^|/)internal/kernel/environment/osenv\.go$|_test\.go$'
         linters:
           - forbidigo
