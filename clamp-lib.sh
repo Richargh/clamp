@@ -11,7 +11,6 @@
 #   CLAMP_DANGER_FLAG    - Permission skip flag ("--dangerously-skip-permissions" or "")
 #   CLAMP_HARNESS        - Harness identifier for startup script ("claude" or "opencode")
 #   CLAMP_SCRIPT_DIR     - Directory containing the wrapper script
-#   CLAMP_WORKFLOWS_ENV  - Environment variable for workflows ("CLAUDE_CLAMP_ADD_WORKFLOWS" or "OPENCODE_CLAMP_ADD_WORKFLOWS")
 
 # Image names / Dockerfiles
 CLAMP_BASE_IMAGE_NAME="clamp-base"
@@ -82,7 +81,6 @@ clamp_usage() {
     echo "  folder: Path to the project folder to run in"
     echo ""
     echo "Environment variables:"
-    echo "  ${CLAMP_WORKFLOWS_ENV}: Set to 'true' to copy bundled workflows into container"
     echo "  CLAMP_CONTAINER_DNS: DNS server for Apple container builds/runs (default: 1.1.1.1)"
 }
 
@@ -518,7 +516,7 @@ clamp_detect_timezone() {
 }
 
 clamp_run() {
-    local workspace container_name project_name project_key config_volume cap_opts proxy_env timezone final_cmd workflows_enabled session_log_dir session_log_file session_log_container
+    local workspace container_name project_name project_key config_volume cap_opts proxy_env timezone final_cmd session_log_dir session_log_file session_log_container
     local startup_args runtime_status
     local -a timezone_env=() runtime_security_opts=() runtime_network_opts=() workspace_volume=()
 
@@ -562,12 +560,6 @@ clamp_run() {
         runtime_network_opts=(--dns "${CLAMP_CONTAINER_DNS:-1.1.1.1}")
         workspace_volume=(-v "$workspace:/workspace")
     fi
-    # Check workflows environment variable
-    workflows_enabled="${!CLAMP_WORKFLOWS_ENV:-false}"
-    if [ "$workflows_enabled" = true ]; then
-        startup_args+=("--add-workflows")
-    fi
-
     # Set final command based on --shell and --danger flags
     final_cmd="$CLAMP_COMMAND"
     if [ "$CLAMP_DANGER_MODE" = true ] && [ -n "$CLAMP_DANGER_FLAG" ]; then

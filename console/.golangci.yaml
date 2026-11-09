@@ -1,0 +1,93 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - depguard
+    - forbidigo
+    - funlen
+  settings:
+    funlen:
+      lines: 40
+      statements: 0
+      ignore-comments: true
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: '^os\.(Open|OpenFile|Create|CreateTemp|ReadFile|WriteFile|ReadDir|DirFS|Stat|Lstat|Mkdir|MkdirAll|MkdirTemp|Remove|RemoveAll|Rename|Link|Symlink|Readlink|Chmod|Chown|Lchown|Chtimes|Truncate|Chdir|Getwd|CopyFS|OpenRoot)$'
+          msg: Use the file system port in Env instead of direct host file access.
+        - pattern: '^filepath\.(Abs|EvalSymlinks|Glob|Walk|WalkDir)$'
+          msg: Use the file system port in Env instead of direct host file access.
+        - pattern: '^ioutil\.(ReadFile|WriteFile|ReadDir|TempFile|TempDir)$'
+          msg: Use the file system port in Env instead of direct host file access.
+        - pattern: '^os\.Stdout$'
+          msg: Use Env.Stdout instead of process stdout.
+        - pattern: '^fmt\.Print(f|ln)?$'
+          msg: Use fmt.Fprint, fmt.Fprintf, or fmt.Fprintln with Env.Stdout.
+        - pattern: '^(print|println)$'
+          msg: Use an explicit writer from Env instead of built-in printing.
+    depguard:
+      rules:
+        application-startup-boundary:
+          list-mode: lax
+          files:
+            - "**/internal/cli/**/*.go"
+            - "**/internal/session/**/*.go"
+          deny:
+            - pkg: github.com/richargh/clamp/console/internal/kernel/host$
+              desc: Host settings must be resolved at startup and passed as configuration.
+        application-test-isolation:
+          list-mode: lax
+          files:
+            - "**/internal/cli/*_test.go"
+            - "**/internal/session/*_test.go"
+          deny:
+            - pkg: os$
+              desc: Application tests must use the memory environment.
+            - pkg: os/
+              desc: Application tests must not launch programs or access host files.
+        kernel-dependency-direction:
+          list-mode: lax
+          files:
+            - "**/internal/kernel/**/*.go"
+          allow:
+            - github.com/richargh/clamp/console/internal/kernel$
+            - github.com/richargh/clamp/console/internal/kernel/
+          deny:
+            - pkg: github.com/richargh/clamp/console/
+              desc: Kernel packages must not import application packages.
+        filesystem-port-boundary:
+          list-mode: lax
+          files:
+            - $all
+            - "!**/internal/kernel/**/os*.go"
+          deny:
+            - pkg: io/fs$
+              desc: Use the filesystem port and its own metadata, mode, and error types.
+            - pkg: testing/fstest$
+              desc: Use the memory filesystem adapter for file system tests.
+        os-adapter-boundary:
+          list-mode: lax
+          files:
+            - $all
+            - "!$test"
+            - "!**/internal/kernel/**/os*.go"
+            - "!**/cmd/**/main.go"
+          deny:
+            - pkg: os$
+              desc: Use the injected environment; os is limited to OS adapters, entry points, and tests.
+            - pkg: os/
+              desc: OS subpackages are limited to OS adapters, entry points, and tests.
+  exclusions:
+    rules:
+      # Keep complete behavior scenarios together in tests.
+      - path: '_test\.go$'
+        linters:
+          - funlen
+      - path: '(^|/)internal/kernel/(.*/)?os[^/]*\.go$|_test\.go$'
+        text: 'Use the file system port in Env instead of direct host file access\.'
+        linters:
+          - forbidigo
+      - path: '(^|/)internal/kernel/environment/osenv\.go$|_test\.go$'
+        linters:
+          - forbidigo

@@ -58,7 +58,6 @@ do
 done
 
 NO_FIREWALL=false
-ADD_WORKFLOWS=false
 HARNESS=""
 AGENT_CMD=()
 AGENT_ENV=(
@@ -76,7 +75,6 @@ AGENT_ENV=(
 while [ $# -gt 0 ]; do
     case $1 in
         --no-firewall) NO_FIREWALL=true; shift ;;
-        --add-workflows) ADD_WORKFLOWS=true; shift ;;
         --harness=*) HARNESS="${1#--harness=}"; shift ;;
         --)
             shift
@@ -102,15 +100,6 @@ if [ "$HARNESS" = "claude" ]; then
     cp -a /opt/claude-config/* "$CLAMP_CONTAINER_HOME/.claude/"
 elif [ "$HARNESS" = "opencode" ]; then
     cp -a /opt/opencode-config/* "$CLAMP_CONTAINER_HOME/.local/share/opencode/"
-fi
-
-# Copy workflows only when --add-workflows is set
-if [ "$ADD_WORKFLOWS" = true ]; then
-    if [ "$HARNESS" = "claude" ]; then
-        cp -a /opt/claude-workflows/* "$CLAMP_CONTAINER_HOME/.claude/"
-        WORKFLOW_COUNT=$(find /opt/claude-workflows -type f | wc -l)
-        echo "Added $WORKFLOW_COUNT workflow files from container image"
-    fi
 fi
 
 if [ "$NO_FIREWALL" = true ]; then
