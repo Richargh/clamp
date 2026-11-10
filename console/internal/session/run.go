@@ -2,21 +2,39 @@ package session
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/richargh/clamp/console/internal/hostproxy"
 	"path/filepath"
 
 	"github.com/richargh/clamp/console/internal/kernel/process"
 )
 
-func (l *Runner) run(ctx context.Context, o Options, project projectIdentity, policy AuthPolicy) error {
-	session, err := newContainerSession(project, policy, l.env.Clock.Now())
-	if err != nil {
-		return err
-	}
+func (l *Runner) run(ctx context.Context, o Options, session containerSession) error {
 	if err := l.env.Files.MkdirAll(session.logDirectory.String(), 0755); err != nil {
 		return err
 	}
-	err = l.execute(ctx, o.Runtime.executable, l.containerArgs(o, session), false)
-	_ = l.shutdown(context.WithoutCancel(ctx), project.workspace, session.logName)
+	proxy, err := hostproxy.New(l.env).Start(ctx, hostproxy.Options{
+		AssetsDir: l.config.AssetsDir(), Workspace: session.workspace.path,
+		LogDirectory: session.logDirectory.path, LogName: session.logName.String(),
+		NoFirewall: o.NoFirewall,
+	})
+	if err != nil {
+		return fmt.Errorf("start host proxy: %w", err)
+	}
+	defer proxy.Close()
+	session.proxyPort = proxy.Port()
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		select {
+		case <-proxy.Done():
+			cancel()
+		case <-runCtx.Done():
+		}
+	}()
+	err = l.execute(runCtx, o.Runtime.executable, l.containerArgs(o, session), false)
+	_ = l.shutdown(context.WithoutCancel(ctx), session.workspace, session.logName)
 	return err
 }
 

@@ -21,7 +21,9 @@ func TestContainerCommand(t *testing.T) {
 		require.NoError(t, err)
 		project := newProjectIdentity(harness, workspace)
 		now := time.Date(2026, 10, 27, 12, 0, 0, 0, time.UTC)
-		session, err := newContainerSession(project, ProjectAuthPolicy(), now)
+		session, err := newContainerSession(project, now)
+		require.NoError(t, err)
+		session.harnessStorage, err = resolveHarnessStorage(ProjectVolume, project)
 		require.NoError(t, err)
 		testee := New(memory.Env, launchConfig(t))
 
@@ -34,10 +36,12 @@ func TestContainerCommand(t *testing.T) {
 			"--name", "pi-20261027-120000",
 			"--user", "root",
 			"--security-opt", "no-new-privileges",
+			"--add-host", "host.docker.internal:host-gateway",
 			"--cap-add=NET_ADMIN",
-			"-e", "HTTP_PROXY=http://127.0.0.1:8888",
-			"-e", "HTTPS_PROXY=http://127.0.0.1:8888",
+			"-e", "CLAMP_HOST_PROXY_PORT=0",
+			"-e", "CLAMP_HOST_PROXY_HOST=host.docker.internal",
 			"-e", "NO_PROXY=",
+			"-v", "/clamp/startup-scripts:/opt/clamp/startup:ro",
 			"-v", "/projects/my-app:/workspace:delegated",
 			"--tmpfs", "/workspace/.clamp:rw,noexec,nosuid,nodev,mode=700",
 			"-v", "/projects/my-app/.clamp/sessions:/workspace/.clamp/sessions",
@@ -71,7 +75,9 @@ func TestContainerCommand(t *testing.T) {
 		require.NoError(t, err)
 		project := newProjectIdentity(options.Harness, workspace)
 		now := time.Date(2026, 10, 27, 12, 0, 0, 0, time.UTC)
-		session, err := newContainerSession(project, GlobalAuthPolicy(), now)
+		session, err := newContainerSession(project, now)
+		require.NoError(t, err)
+		session.harnessStorage, err = resolveHarnessStorage(SharedVolume, project)
 		require.NoError(t, err)
 		testee := New(memory.Env, settings)
 
@@ -85,10 +91,11 @@ func TestContainerCommand(t *testing.T) {
 			"--user", "root",
 			"--dns", "9.9.9.9",
 			"--cap-add=NET_ADMIN",
-			"-e", "HTTP_PROXY=http://127.0.0.1:8888",
-			"-e", "HTTPS_PROXY=http://127.0.0.1:8888",
+			"-e", "CLAMP_HOST_PROXY_PORT=0",
+			"-e", "CLAMP_HOST_PROXY_HOST=host.container.internal",
 			"-e", "NO_PROXY=",
 			"-e", "TZ=Europe/Berlin",
+			"-v", "/clamp/startup-scripts:/opt/clamp/startup:ro",
 			"-v", "/projects/my-app:/workspace",
 			"--tmpfs", "/workspace/.clamp:rw,noexec,nosuid,nodev,mode=700",
 			"-v", "/projects/my-app/.clamp/sessions:/workspace/.clamp/sessions",
@@ -102,7 +109,6 @@ func TestContainerCommand(t *testing.T) {
 			"-e", "CLAMP_NETWORK_LOG_FILE=/workspace/.clamp/sessions/20261027-120000-network.log",
 			"clamp-claude-3670971996",
 			"/opt/clamp/startup/container-startup.sh", "--harness=claude",
-			"--no-firewall",
 			"--", "bash", "-c", "claude --dangerously-skip-permissions",
 		}, actual)
 	})

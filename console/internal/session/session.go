@@ -19,37 +19,50 @@ func New(env environment.Env, settings config.Config) *Runner {
 	return &Runner{env: env, config: settings}
 }
 
+// Launch is the non-interactive entry point for sessions with a saved or explicit
+// volume choice. Interactive callers prepare a Session before launching it.
 func (l *Runner) Launch(ctx context.Context, o Options) error {
+	prepared, err := l.Prepare(o)
+	if err != nil {
+		return err
+	}
+	return prepared.Launch(ctx)
+}
+
+// Prepare resolves the session without building images or running processes.
+// A new project may still need a harness volume selection from the caller.
+func (l *Runner) Prepare(o Options) (*Session, error) {
 	if o.Harness.name == "" || o.Runtime.name == "" {
-		return fmt.Errorf("harness and runtime are required")
+		return nil, fmt.Errorf("harness and runtime are required")
 	}
 	executable, err := l.env.Processes.LookPath(o.Runtime.name)
 	if err != nil {
-		return fmt.Errorf("container runtime not found: %s: %w", o.Runtime.name, err)
+		return nil, fmt.Errorf("container runtime not found: %s: %w", o.Runtime.name, err)
 	}
 	o.Runtime.executable = executable
 	workspace, err := l.resolveWorkspace(o.Folder)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	policy, err := l.authPolicy(workspace.String(), o.PerProjectAuth)
+	choice, err := l.loadHarnessStorage(workspace.String(), o.PerProjectAuth)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	l.printConfig(o, policy)
 	project := newProjectIdentity(o.Harness, workspace)
-	if err := l.setupProject(workspace); err != nil {
-		return err
+	container, err := newContainerSession(project, l.env.Clock.Now())
+	if err != nil {
+		return nil, err
 	}
-	if err := l.build(ctx, o, project); err != nil {
-		return err
+	prepared := &Session{runner: l, options: o, project: project, container: container}
+	if err := prepared.SetHarnessVolume(choice); err != nil {
+		return nil, err
 	}
-	return l.run(ctx, o, project, policy)
+	return prepared, nil
 }
 
-func (l *Runner) printConfig(o Options, policy AuthPolicy) {
+func (l *Runner) printConfig(o Options, choice HarnessVolumeChoice) {
 	auth := "Global"
-	if policy.IsProject() {
+	if choice == ProjectVolume {
 		auth = "Project"
 	}
 	firewall := "On"

@@ -3,10 +3,12 @@ package filesystem
 import (
 	"bytes"
 	"errors"
+	"io"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type memoryEntry struct {
@@ -59,6 +61,50 @@ func (m *Memory) WriteFile(path string, contents []byte, mode Mode) error {
 		return err
 	}
 	m.entries[path] = memoryEntry{info: Info{mode: mode & 0777}, contents: bytes.Clone(contents)}
+	return nil
+}
+
+func (m *Memory) OpenAppend(path string, mode Mode) (io.WriteCloser, error) {
+	if _, err := m.lookup(path); errors.Is(err, ErrNotExist) {
+		if err := m.WriteFile(path, nil, mode); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+	entry, err := m.lookup(path)
+	if err != nil {
+		return nil, err
+	}
+	if entry.info.IsDir() {
+		return nil, ErrIsDirectory
+	}
+	return &memoryAppend{files: m, path: memoryPath(path)}, nil
+}
+
+type memoryAppend struct {
+	files  *Memory
+	path   string
+	closed bool
+	mu     sync.Mutex
+}
+
+func (w *memoryAppend) Write(data []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.closed {
+		return 0, ErrInvalid
+	}
+	entry := w.files.entries[w.path]
+	entry.contents = append(entry.contents, data...)
+	w.files.entries[w.path] = entry
+	return len(data), nil
+}
+
+func (w *memoryAppend) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.closed = true
 	return nil
 }
 

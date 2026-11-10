@@ -1,4 +1,6 @@
 #!/bin/bash
+# The deprecated library stops startup. Keep the old launcher for reference.
+# shellcheck disable=SC2317
 set -e
 
 # Resolve the real path of this script (handles symlinks)

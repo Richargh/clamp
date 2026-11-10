@@ -43,7 +43,7 @@ func TestRun(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			// given
 			memory, settings := cliMemory(t)
-			memory.ProcessMemory.OnRun = nil
+			memory.ProcessMemory.OnRun = withProxy(nil)
 			testee := New(memory.Env, settings)
 			args := append(append([]string{}, scenario.beforeFolder...), "/project")
 			args = append(args, scenario.afterFolder...)
@@ -66,7 +66,7 @@ func TestRun(t *testing.T) {
 		t.Run("Should select "+harness+" through the run command", func(t *testing.T) {
 			// given
 			memory, settings := cliMemory(t)
-			memory.ProcessMemory.OnRun = nil
+			memory.ProcessMemory.OnRun = withProxy(nil)
 			testee := New(memory.Env, settings)
 			args := []string{"run", harness, "/project", "--per-project-auth"}
 
@@ -103,12 +103,12 @@ func TestRun(t *testing.T) {
 		// given
 		memory, settings := cliMemory(t)
 		failure := &processExitError{code: 42}
-		memory.ProcessMemory.OnRun = func(_ context.Context, p process.Process) error {
+		memory.ProcessMemory.OnRun = withProxy(func(_ context.Context, p process.Process) error {
 			if len(p.Args) > 0 && p.Args[0] == "run" {
 				return failure
 			}
 			return nil
-		}
+		})
 		testee := New(memory.Env, settings)
 		args := []string{"run", "pi", "/project", "--per-project-auth"}
 

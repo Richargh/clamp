@@ -1,6 +1,12 @@
 #!/bin/bash
+# The code below the deprecation return is kept for reference only.
+# shellcheck disable=SC2317,SC2329,SC2086
 # clamp-lib.sh - Shared library for clamp wrapper scripts
 # This file is sourced by clamp-claude.sh and clamp-open-code.sh
+
+# Deprecated: keep the old implementation below for reference only.
+printf '%s\n' 'Error: clamp-lib.sh is deprecated. Run mise run build, then use bin/clamp run <harness> <folder>.' >&2
+return 1 2>/dev/null || exit 1
 
 # Required variables to be set by wrapper before calling clamp_main:
 #   CLAMP_TOOL_NAME      - Display name ("Claude Code" or "OpenCode")

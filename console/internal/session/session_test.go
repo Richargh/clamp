@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/richargh/clamp/console/internal/kernel/filesystem"
@@ -18,7 +17,7 @@ func TestImageBuild(t *testing.T) {
 		env, workspace, processes := newLaunchEnv(t)
 		require.NoError(t, env.Files.WriteFile(filepath.Join(workspace, "mise.toml"), []byte("[tools]\n"), 0600))
 		var generated, ignore string
-		processes.OnRun = func(_ context.Context, p process.Process) error {
+		processes.OnRun = withProxy(func(_ context.Context, p process.Process) error {
 			if p.Args[0] == "build" && p.Args[len(p.Args)-1] == workspace {
 				for i, arg := range p.Args {
 					if arg == "-f" {
@@ -34,7 +33,7 @@ func TestImageBuild(t *testing.T) {
 				ignore = string(data)
 			}
 			return nil
-		}
+		})
 		testee := New(env, launchConfig(t))
 
 		// when
@@ -72,7 +71,7 @@ func TestImageBuild(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Len(t, processes.Calls, 5)
+		require.Len(t, processes.Calls, 6)
 		for _, p := range processes.Calls[:3] {
 			require.Equal(t, "build", p.Args[0])
 			require.Contains(t, p.Args, "--no-cache")
@@ -99,21 +98,25 @@ func TestImageBuild(t *testing.T) {
 	})
 }
 
-func TestAuthPolicy(t *testing.T) {
-	t.Run("Should save the selected policy and reuse it without a prompt", func(t *testing.T) {
+func TestHarnessStorage(t *testing.T) {
+	t.Run("Should save the selected harness storage and reuse it without a prompt", func(t *testing.T) {
 		// given
 		env, workspace, _ := newLaunchEnv(t)
-		env.Stdin = strings.NewReader("invalid\n1\n")
 		options := launchOptions(workspace)
 		options.PerProjectAuth = false
 		settings := launchConfig(t)
 		testee := New(env, settings)
 
 		// when
-		first := testee.Launch(t.Context(), options)
-		env.Stdin = strings.NewReader("")
-		testee = New(env, settings)
-		second := testee.Launch(t.Context(), options)
+		prepared, err := testee.Prepare(options)
+		require.NoError(t, err)
+		require.True(t, prepared.HasNoHarnessVolume())
+		require.NoError(t, prepared.SetHarnessVolume(SharedVolume))
+		first := prepared.Launch(t.Context())
+		restored, err := testee.Prepare(options)
+		require.NoError(t, err)
+		require.False(t, restored.HasNoHarnessVolume())
+		second := restored.Launch(t.Context())
 
 		// then
 		require.NoError(t, first)
@@ -122,10 +125,9 @@ func TestAuthPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, workspace+"\tglobal\n", string(data))
 	})
-	t.Run("Should fail without starting containers when the auth prompt reaches EOF", func(t *testing.T) {
+	t.Run("Should require a storage choice before starting containers", func(t *testing.T) {
 		// given
 		env, workspace, processes := newLaunchEnv(t)
-		env.Stdin = strings.NewReader("")
 		options := launchOptions(workspace)
 		options.PerProjectAuth = false
 		testee := New(env, launchConfig(t))
@@ -134,7 +136,7 @@ func TestAuthPolicy(t *testing.T) {
 		err := testee.Launch(t.Context(), options)
 
 		// then
-		require.ErrorContains(t, err, "unable to read auth preference")
+		require.ErrorContains(t, err, "harness storage selection is required")
 		require.Empty(t, processes.Calls)
 	})
 }
@@ -146,7 +148,7 @@ func TestContainerExit(t *testing.T) {
 		settings := launchConfig(t)
 		failure := errors.New("agent failed")
 		var shutdown process.Process
-		processes.OnRun = func(_ context.Context, p process.Process) error {
+		processes.OnRun = withProxy(func(_ context.Context, p process.Process) error {
 			if p.Executable.String() == filepath.Join(settings.AssetsDir().String(), "shutdown-scripts", "clamp-shutdown.sh") {
 				shutdown = p
 				return errors.New("summary failed")
@@ -155,7 +157,7 @@ func TestContainerExit(t *testing.T) {
 				return failure
 			}
 			return nil
-		}
+		})
 		options := launchOptions(workspace)
 		options.Shell = true
 		options.Danger = true

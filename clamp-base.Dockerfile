@@ -8,7 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates=20230311+deb12u* \
     && apt-get install -y --no-install-recommends \
     iptables=1.8.9-2 \
-    ipset=7.17-1 \
     iproute2=6.1.0-3 \
     bind9-dnsutils=1:9.18.49-1~deb12u2 \
     aggregate=1.6-7+b1 \
@@ -68,7 +67,6 @@ ENV HOME=/home/$CONTAINER_USER \
 # Create non-root user and workspace
 RUN groupadd --gid $USER_GID $CONTAINER_USER \
     && useradd --uid $USER_UID --gid $USER_GID -m $CONTAINER_USER \
-    && useradd --system --gid $USER_GID --no-create-home --shell /usr/sbin/nologin clamp-proxy \
     && mkdir -p /workspace /workspace/node_modules /workspace/build /home/$CONTAINER_USER/.gradle \
     && chown -R $CONTAINER_USER:$CONTAINER_USER /workspace /home/$CONTAINER_USER
 

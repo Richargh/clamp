@@ -1,11 +1,17 @@
 package filesystem
 
-import "errors"
+import (
+	"errors"
+	"io"
+)
 
 // FileSystem isolates host file access from session and CLI code.
 type FileSystem interface {
 	ReadFile(path string) ([]byte, error)
 	WriteFile(path string, contents []byte, mode Mode) error
+	// OpenAppend creates or opens a file without truncation. The returned writer
+	// supports concurrent writes and must be closed by the caller.
+	OpenAppend(path string, mode Mode) (io.WriteCloser, error)
 	MkdirAll(path string, mode Mode) error
 	Stat(path string) (Info, error)
 	Remove(path string) error

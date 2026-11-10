@@ -12,6 +12,7 @@ func TestMemoryFileSystem(t *testing.T) {
 	t.Run("Should copy shared domain rules using the injected file system", func(t *testing.T) {
 		// given
 		memory := environment.NewMemory()
+		memory.ProcessMemory.OnRun = withProxy(nil)
 		executable, err := process.ParseExecutable("/bin/docker")
 		require.NoError(t, err)
 		memory.ProcessMemory.Executables["docker"] = executable

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -96,6 +97,27 @@ func TestMemoryProcesses(t *testing.T) {
 		// then
 		require.ErrorContains(t, err, "invalid executable")
 		require.Empty(t, testee.Calls)
+	})
+}
+
+func TestMemoryConcurrentProcesses(t *testing.T) {
+	t.Run("Should record concurrent process calls without losing entries", func(t *testing.T) {
+		// given
+		testee := NewMemory()
+		executable, err := ParseExecutable("program")
+		require.NoError(t, err)
+		var group sync.WaitGroup
+		failures := make(chan error, 20)
+		// when
+		for range 20 {
+			group.Go(func() { failures <- testee.Run(t.Context(), Process{Executable: executable}) })
+		}
+		group.Wait()
+		// then
+		for range 20 {
+			require.NoError(t, <-failures)
+		}
+		require.Len(t, testee.Calls, 20)
 	})
 }
 

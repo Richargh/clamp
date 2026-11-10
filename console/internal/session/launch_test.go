@@ -2,7 +2,6 @@ package session
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"testing"
 
@@ -101,7 +100,7 @@ func TestProjectConfiguration(t *testing.T) {
 }
 
 func TestContainerNetworking(t *testing.T) {
-	t.Run("Should route HTTP traffic through the container proxy", func(t *testing.T) {
+	t.Run("Should route HTTP traffic through the host proxy", func(t *testing.T) {
 		// given
 		env, workspace, processes := newLaunchEnv(t)
 		testee := New(env, launchConfig(t))
@@ -112,8 +111,12 @@ func TestContainerNetworking(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		run := requireContainerRun(t, processes.Calls)
-		require.Contains(t, run.Args, "HTTP_PROXY=http://127.0.0.1:8888")
-		require.Contains(t, run.Args, "HTTPS_PROXY=http://127.0.0.1:8888")
+		require.Contains(t, run.Args, "CLAMP_HOST_PROXY_HOST=host.docker.internal")
+		require.Contains(t, run.Args, "CLAMP_HOST_PROXY_PORT=18888")
+		for _, arg := range run.Args {
+			require.False(t, strings.HasPrefix(arg, "HTTP_PROXY="))
+			require.False(t, strings.HasPrefix(arg, "HTTPS_PROXY="))
+		}
 		require.Contains(t, run.Args, "NO_PROXY=")
 	})
 	t.Run("Should grant network administration for the firewall", func(t *testing.T) {
@@ -199,7 +202,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 
 func TestStartupOptions(t *testing.T) {
 	for _, disabled := range []bool{false, true} {
-		t.Run(fmt.Sprintf("Should pass the firewall override only when disabled is %t", disabled), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Should keep the firewall override out of container arguments when disabled is %t", disabled), func(t *testing.T) {
 			// given
 			env, workspace, processes := newLaunchEnv(t)
 			options := launchOptions(workspace)
@@ -212,7 +215,7 @@ func TestStartupOptions(t *testing.T) {
 			// then
 			require.NoError(t, err)
 			run := requireContainerRun(t, processes.Calls)
-			require.Equal(t, disabled, slices.Contains(run.Args, "--no-firewall"))
+			require.NotContains(t, run.Args, "--no-firewall")
 		})
 	}
 	for _, scenario := range []struct {

@@ -51,7 +51,7 @@ func TestCLI(t *testing.T) {
 	t.Run("Should accept all legacy flags after the folder", func(t *testing.T) {
 		// given
 		memory, settings := cliMemory(t)
-		memory.ProcessMemory.OnRun = nil
+		memory.ProcessMemory.OnRun = withProxy(nil)
 		testee := New(memory.Env, settings)
 		args := []string{"run", "pi", "/project", "--runtime=container", "--rebuild", "--no-cache", "--per-project-auth", "--no-firewall", "--danger", "--shell"}
 
@@ -61,14 +61,14 @@ func TestCLI(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		calls := memory.ProcessMemory.Calls
-		require.Len(t, calls, 5)
+		require.Len(t, calls, 6)
 		for _, p := range calls[:3] {
 			require.Equal(t, "/bin/container", p.Executable.String())
 			require.Contains(t, p.Args, "--no-cache")
 		}
-		run := calls[3]
+		run := calls[4]
 		require.Equal(t, "run", run.Args[0])
 		require.Equal(t, "bash", run.Args[len(run.Args)-1])
-		require.Contains(t, run.Args, "--no-firewall")
+		require.NotContains(t, run.Args, "--no-firewall")
 	})
 }

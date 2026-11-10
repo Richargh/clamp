@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sync"
 )
 
-// Memory records processes without starting programs. Configure it before use.
-// It is not concurrent.
+// Memory records processes without starting programs. Configure it before use
+// and inspect Calls after execution ends. Run supports concurrent calls; OnRun
+// must also support them when it is configured.
 type Memory struct {
 	Executables map[string]Executable
 	Calls       []Process
 	OnRun       func(context.Context, Process) error
+	mu          sync.Mutex
 }
 
 func NewMemory() *Memory {
@@ -36,7 +39,9 @@ func (m *Memory) Run(ctx context.Context, process Process) error {
 		return err
 	}
 	process.Args = slices.Clone(process.Args)
+	m.mu.Lock()
 	m.Calls = append(m.Calls, process)
+	m.mu.Unlock()
 	if m.OnRun != nil {
 		return m.OnRun(ctx, process)
 	}

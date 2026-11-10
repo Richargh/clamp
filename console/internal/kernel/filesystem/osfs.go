@@ -3,6 +3,7 @@ package filesystem
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -20,6 +21,14 @@ func (*OS) ReadFile(path string) ([]byte, error) {
 
 func (*OS) WriteFile(path string, contents []byte, mode Mode) error {
 	return fileError(os.WriteFile(path, contents, fs.FileMode(mode)))
+}
+
+func (*OS) OpenAppend(path string, mode Mode) (io.WriteCloser, error) {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, fs.FileMode(mode))
+	if err != nil {
+		return nil, fileError(err)
+	}
+	return file, nil
 }
 
 func (*OS) MkdirAll(path string, mode Mode) error {

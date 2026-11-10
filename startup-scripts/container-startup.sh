@@ -14,6 +14,14 @@ set -e
 
 # Parse startup options. Arguments after -- are the coding-agent command to run
 # as the unprivileged container user.
+if [ -z "${CLAMP_HOST_PROXY_HOST:-}" ]; then
+    echo "Error: CLAMP_HOST_PROXY_HOST must be set" >&2
+    exit 1
+fi
+if [ -z "${CLAMP_HOST_PROXY_PORT:-}" ]; then
+    echo "Error: CLAMP_HOST_PROXY_PORT must be set" >&2
+    exit 1
+fi
 if [ -z "${CLAMP_CONTAINER_USER:-}" ]; then
     echo "Error: CLAMP_CONTAINER_USER must be set" >&2
     exit 1
@@ -57,28 +65,32 @@ do
     chown --no-dereference "$_uid:$_gid" "$writable_dir"
 done
 
-NO_FIREWALL=false
+# Domain policy is enforced by the host proxy.
+# The container must never get a direct outbound path.
+# shellcheck source=startup-scripts/init-host-proxy-firewall.sh
+source /opt/clamp/startup/init-host-proxy-firewall.sh
+
 HARNESS=""
-AGENT_CMD=()
-AGENT_ENV=(
+HARNESS_CMD=()
+# Use the resolved address: direct DNS is now blocked.
+HARNESS_ENV=(
     "HOME=$CLAMP_CONTAINER_HOME"
     "USER=$CLAMP_CONTAINER_USER"
     "LOGNAME=$CLAMP_CONTAINER_USER"
     "PATH=$PATH"
-    "HTTP_PROXY=${HTTP_PROXY:?Error: HTTP_PROXY must be set}"
-    "HTTPS_PROXY=${HTTPS_PROXY:?Error: HTTPS_PROXY must be set}"
+    "HTTP_PROXY=http://$CLAMP_HOST_PROXY_HOST:$CLAMP_HOST_PROXY_PORT"
+    "HTTPS_PROXY=http://$CLAMP_HOST_PROXY_HOST:$CLAMP_HOST_PROXY_PORT"
     "NO_PROXY=${NO_PROXY?Error: NO_PROXY must be set}"
-    "http_proxy=$HTTP_PROXY"
-    "https_proxy=$HTTPS_PROXY"
+    "http_proxy=http://$CLAMP_HOST_PROXY_HOST:$CLAMP_HOST_PROXY_PORT"
+    "https_proxy=http://$CLAMP_HOST_PROXY_HOST:$CLAMP_HOST_PROXY_PORT"
     "no_proxy=$NO_PROXY"
 )
 while [ $# -gt 0 ]; do
     case $1 in
-        --no-firewall) NO_FIREWALL=true; shift ;;
         --harness=*) HARNESS="${1#--harness=}"; shift ;;
         --)
             shift
-            AGENT_CMD=("$@")
+            HARNESS_CMD=("$@")
             break
             ;;
         *)
@@ -102,42 +114,20 @@ elif [ "$HARNESS" = "opencode" ]; then
     cp -a /opt/opencode-config/* "$CLAMP_CONTAINER_HOME/.local/share/opencode/"
 fi
 
-if [ "$NO_FIREWALL" = true ]; then
-    if [ "$HARNESS" = "claude" ]; then
-        # Remove web permissions (no firewall = no restrictions)
-        sed -i '/"WebFetch(domain:\*)",/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
-        sed -i '/"WebSearch"/d' "$CLAMP_CONTAINER_HOME/.claude/settings.json"
-    fi
-    # OpenCode: no permission cleanup needed for no-firewall mode
-    /opt/clamp/startup/init-firewall.sh --allow-all
-else
-    if ! find /opt/clamp-shared/allowed-domains.d -maxdepth 1 -type f -name '*.txt' 2>/dev/null | grep -q .; then
-        echo "No allowed-domain files found in /opt/clamp-shared/allowed-domains.d."
-        echo "The firewall will block outbound traffic except DNS, loopback, and established connections."
-        read -r -p "Continue? [y/N] " confirm
-        case "$confirm" in
-            [yY]|[yY][eE][sS]) ;;
-            *) echo "Startup cancelled."; exit 1 ;;
-        esac
-    fi
-    /opt/clamp/startup/init-firewall.sh /opt/clamp-shared/allowed-domains.d
-fi
-
-if [ ${#AGENT_CMD[@]} -eq 0 ]; then
+if [ ${#HARNESS_CMD[@]} -eq 0 ]; then
     exit 0
 fi
 
 # Permanently hand off to the coding agent as the container user. Remove
-# inheritable/ambient capabilities and remove NET_ADMIN from the bounding set so
-# the agent and its children cannot alter the firewall even though the container
-# needed NET_ADMIN during startup.
+# inheritable/ambient capabilities and clear the bounding set so the agent
+# cannot alter or bypass the firewall with raw sockets.
 exec setpriv \
     --reuid="$CLAMP_CONTAINER_USER" \
     --regid="$CLAMP_CONTAINER_USER" \
     --init-groups \
     --inh-caps=-all \
     --ambient-caps=-all \
-    --bounding-set=-net_admin \
+    --bounding-set=-all \
     --reset-env \
     -- \
-    env "${AGENT_ENV[@]}" "${AGENT_CMD[@]}"
+    env "${HARNESS_ENV[@]}" "${HARNESS_CMD[@]}"

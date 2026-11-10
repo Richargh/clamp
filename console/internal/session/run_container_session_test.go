@@ -8,7 +8,7 @@ import (
 )
 
 func TestContainerSession(t *testing.T) {
-	t.Run("Should preserve workspace spaces while using safe project volume names", func(t *testing.T) {
+	t.Run("Should prepare workspace names before a harness volume is selected", func(t *testing.T) {
 		// given
 		workspace, err := ParseWorkspace("/projects/project with spaces")
 		require.NoError(t, err)
@@ -19,13 +19,14 @@ func TestContainerSession(t *testing.T) {
 		testee := newContainerSession
 
 		// when
-		actual, err := testee(project, ProjectAuthPolicy(), now)
+		actual, err := testee(project, now)
 
 		// then
 		require.NoError(t, err)
 		require.Equal(t, "/projects/project with spaces", actual.workspace.String())
 		require.Equal(t, "project-with-spaces", actual.project.String())
-		require.Equal(t, "claude-clamp-project-with-spaces-1648402911", actual.credentialVolume.String())
+		require.Equal(t, NoChoiceMade, actual.harnessStorage.Choice())
+		require.Equal(t, "claude-clamp", actual.harnessStorage.Volume().String())
 	})
 	t.Run("Should reject a clock value outside the session filename format", func(t *testing.T) {
 		// given
@@ -38,7 +39,7 @@ func TestContainerSession(t *testing.T) {
 		testee := newContainerSession
 
 		// when
-		_, err = testee(project, ProjectAuthPolicy(), now)
+		_, err = testee(project, now)
 
 		// then
 		require.ErrorContains(t, err, "invalid session log name")

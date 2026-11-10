@@ -25,11 +25,3 @@ func newProjectIdentity(harness Harness, workspace Workspace) projectIdentity {
 		image:     ImageName{value: tool + "-" + strconv.FormatUint(uint64(key), 10)},
 	}
 }
-
-func (p projectIdentity) credentialVolume(policy AuthPolicy) VolumeName {
-	name := p.harness.prefix
-	if policy.IsProject() {
-		name += "-" + p.name.String() + "-" + strconv.FormatUint(uint64(p.key), 10)
-	}
-	return VolumeName{value: name}
-}
