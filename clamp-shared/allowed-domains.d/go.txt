@@ -1,0 +1,5 @@
+# Go module proxy and checksum database
+proxy.golang.org:443
+sum.golang.org:443
+# Module archives served by the Go proxy
+storage.googleapis.com:443
