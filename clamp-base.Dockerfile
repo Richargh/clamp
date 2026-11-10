@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
     iptables=1.8.9-2 \
     iproute2=6.1.0-3 \
-    bind9-dnsutils=1:9.18.49-1~deb12u2 \
+    bind9-dnsutils=1:9.18.* \
     aggregate=1.6-7+b1 \
     fd-find=8.6.0-3 \
     git=1:2.39.5-0+deb12u* \
@@ -72,6 +72,7 @@ RUN groupadd --gid $USER_GID $CONTAINER_USER \
 
 COPY startup-scripts/ /opt/clamp/startup/
 COPY clamp-shared/container-bin/ /usr/local/bin/
+COPY --chown=$CONTAINER_USER:$CONTAINER_USER clamp-shared/.m2/settings.xml /home/$CONTAINER_USER/.m2/settings.xml
 
 WORKDIR /workspace
 USER $CONTAINER_USER
