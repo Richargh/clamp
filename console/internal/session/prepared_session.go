@@ -3,6 +3,8 @@ package session
 import (
 	"context"
 	"fmt"
+
+	"github.com/richargh/clamp/console/internal/settings"
 )
 
 // Session is prepared launch state. Volume selection is separate from user
@@ -40,7 +42,11 @@ func (s *Session) Launch(ctx context.Context) error {
 		return err
 	}
 	l.printConfig(s.options, s.container.harnessStorage.Choice())
-	if err := l.setupProject(s.Workspace()); err != nil {
+	project, err := settings.ParseProject(s.Workspace().String())
+	if err != nil {
+		return err
+	}
+	if err := settings.BootstrapProject(l.env, project, l.config.AssetsDir()); err != nil {
 		return err
 	}
 	if err := l.build(ctx, s.options, s.project); err != nil {

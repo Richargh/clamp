@@ -9,7 +9,7 @@ import (
 	"github.com/richargh/clamp/console/internal/kernel/filesystem"
 )
 
-func (l *Runner) authPath() string { return l.config.AuthStore().String() }
+func (l *Runner) authPath() string { return l.config.User().AuthStore().String() }
 
 func (l *Runner) loadHarnessStorage(workspace string, explicit bool) (HarnessVolumeChoice, error) {
 	raw, _, err := l.harnessStorageRecord(workspace)

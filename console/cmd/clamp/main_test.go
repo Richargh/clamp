@@ -20,9 +20,9 @@ func TestStartupConfiguration(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Equal(t, "/preferences/clamp/auth-projects.tsv", testee.AuthStore().String())
-		require.Equal(t, "9.9.9.9", testee.ContainerDNS().String())
-		require.Equal(t, "Europe/Berlin", testee.ContainerTimezone().String())
+		require.Equal(t, "/preferences/clamp/auth-projects.tsv", testee.User().AuthStore().String())
+		require.Equal(t, "9.9.9.9", testee.User().ContainerDNS().String())
+		require.Equal(t, "Europe/Berlin", testee.User().ContainerTimezone().String())
 	})
 	t.Run("Should reject invalid DNS before services run", func(t *testing.T) {
 		// given

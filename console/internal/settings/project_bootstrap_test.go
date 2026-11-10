@@ -1,4 +1,4 @@
-package session
+package settings
 
 import (
 	"bytes"
@@ -20,19 +20,19 @@ func TestProjectSetup(t *testing.T) {
 	} {
 		t.Run("Should report mise setup correctly for a Dockerfile "+scenario.name, func(t *testing.T) {
 			// given
-			env, workspace, _ := newLaunchEnv(t)
+			env, workspace, assets := newProjectBootstrapEnv(t)
 			var output bytes.Buffer
 			env.Stdout = &output
 			require.NoError(t, env.Files.WriteFile(filepath.Join(workspace, "mise.toml"), []byte("[tools]\n"), 0600))
 			dir := filepath.Join(workspace, ".clamp")
 			require.NoError(t, env.Files.MkdirAll(dir, 0700))
 			require.NoError(t, env.Files.WriteFile(filepath.Join(dir, "clamp.Dockerfile"), []byte(scenario.dockerfile), 0600))
-			resolved, err := ParseWorkspace(workspace)
+			project, err := ParseProject(workspace)
 			require.NoError(t, err)
-			testee := New(env, launchConfig(t))
+			testee := BootstrapProject
 
 			// when
-			err = testee.setupProject(resolved)
+			err = testee(env, project, assets)
 
 			// then
 			require.NoError(t, err)
@@ -45,7 +45,7 @@ func TestProjectSetup(t *testing.T) {
 	}
 	t.Run("Should preserve existing project additions", func(t *testing.T) {
 		// given
-		env, workspace, _ := newLaunchEnv(t)
+		env, workspace, assets := newProjectBootstrapEnv(t)
 		dir := filepath.Join(workspace, ".clamp")
 		require.NoError(t, env.Files.MkdirAll(dir, 0700))
 		files := map[string]string{
@@ -55,12 +55,12 @@ func TestProjectSetup(t *testing.T) {
 		for name, content := range files {
 			require.NoError(t, env.Files.WriteFile(filepath.Join(dir, name), []byte(content), 0600))
 		}
-		resolved, err := ParseWorkspace(workspace)
+		project, err := ParseProject(workspace)
 		require.NoError(t, err)
-		testee := New(env, launchConfig(t))
+		testee := BootstrapProject
 
 		// when
-		err = testee.setupProject(resolved)
+		err = testee(env, project, assets)
 
 		// then
 		require.NoError(t, err)

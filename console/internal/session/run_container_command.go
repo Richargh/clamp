@@ -45,11 +45,11 @@ func (l *Runner) runtimeArgs(runtime Runtime) []string {
 	if runtime.name == "docker" {
 		return []string{"--security-opt", "no-new-privileges", "--add-host", "host.docker.internal:host-gateway"}
 	}
-	return []string{"--dns", l.config.ContainerDNS().String()}
+	return []string{"--dns", l.config.User().ContainerDNS().String()}
 }
 
 func (l *Runner) timezoneArgs() []string {
-	if zone := l.config.ContainerTimezone().String(); zone != "" {
+	if zone := l.config.User().ContainerTimezone().String(); zone != "" {
 		return []string{"-e", "TZ=" + zone}
 	}
 	return nil

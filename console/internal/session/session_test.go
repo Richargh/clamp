@@ -121,7 +121,7 @@ func TestHarnessStorage(t *testing.T) {
 		// then
 		require.NoError(t, first)
 		require.NoError(t, second)
-		data, err := env.Files.ReadFile(settings.AuthStore().String())
+		data, err := env.Files.ReadFile(settings.User().AuthStore().String())
 		require.NoError(t, err)
 		require.Equal(t, workspace+"\tglobal\n", string(data))
 	})

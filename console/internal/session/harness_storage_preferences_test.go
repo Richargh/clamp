@@ -24,7 +24,7 @@ func TestHarnessStoragePreferenceWriting(t *testing.T) {
 			err := testee.rememberHarnessStorage("/project", scenario.choice)
 			// then
 			require.NoError(t, err)
-			data, err := memory.Files.ReadFile(settings.AuthStore().String())
+			data, err := memory.Files.ReadFile(settings.User().AuthStore().String())
 			require.NoError(t, err)
 			require.Equal(t, "/project\t"+scenario.value+"\n", string(data))
 		})
@@ -39,7 +39,7 @@ func TestHarnessStoragePreferenceWriting(t *testing.T) {
 			// given
 			memory := environment.NewMemory()
 			settings := launchConfig(t)
-			path := settings.AuthStore().String()
+			path := settings.User().AuthStore().String()
 			require.NoError(t, memory.Files.MkdirAll(filepath.Dir(path), 0700))
 			original := []byte("/project\tproject\n")
 			require.NoError(t, memory.Files.WriteFile(path, original, 0600))
@@ -67,7 +67,7 @@ func TestSavedHarnessStorage(t *testing.T) {
 			// given
 			memory := environment.NewMemory()
 			settings := launchConfig(t)
-			path := settings.AuthStore().String()
+			path := settings.User().AuthStore().String()
 			require.NoError(t, memory.Files.MkdirAll(filepath.Dir(path), 0700))
 			require.NoError(t, memory.Files.WriteFile(path, []byte("/project\t"+scenario.raw+"\n"), 0600))
 			testee := New(memory.Env, settings)
@@ -82,7 +82,7 @@ func TestSavedHarnessStorage(t *testing.T) {
 		// given
 		memory := environment.NewMemory()
 		settings := launchConfig(t)
-		path := settings.AuthStore().String()
+		path := settings.User().AuthStore().String()
 		require.NoError(t, memory.Files.MkdirAll(filepath.Dir(path), 0700))
 		require.NoError(t, memory.Files.WriteFile(path, []byte("/project\tinvalid\n"), 0600))
 		testee := New(memory.Env, settings)
@@ -95,7 +95,7 @@ func TestSavedHarnessStorage(t *testing.T) {
 		// given
 		memory := environment.NewMemory()
 		settings := launchConfig(t)
-		path := settings.AuthStore().String()
+		path := settings.User().AuthStore().String()
 		require.NoError(t, memory.Files.MkdirAll(filepath.Dir(path), 0700))
 		require.NoError(t, memory.Files.WriteFile(path, []byte("/other\tglobal\n/project\tinvalid\n"), 0600))
 		testee := New(memory.Env, settings)

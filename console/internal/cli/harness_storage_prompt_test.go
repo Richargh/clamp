@@ -22,7 +22,7 @@ func TestRunHarnessStorage(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.Contains(t, memory.Errors.String(), "Choice [1/2]:")
-		saved, err := memory.Files.ReadFile(settings.AuthStore().String())
+		saved, err := memory.Files.ReadFile(settings.User().AuthStore().String())
 		require.NoError(t, err)
 		require.Equal(t, "/project\tproject\n", string(saved))
 	})
@@ -30,7 +30,7 @@ func TestRunHarnessStorage(t *testing.T) {
 		// given
 		memory, settings := cliMemory(t)
 		memory.ProcessMemory.OnRun = withProxy(nil)
-		path := settings.AuthStore().String()
+		path := settings.User().AuthStore().String()
 		require.NoError(t, memory.Files.MkdirAll(filepath.Dir(path), 0700))
 		require.NoError(t, memory.Files.WriteFile(path, []byte("/project\tglobal\n"), 0600))
 		testee := New(memory.Env, settings)

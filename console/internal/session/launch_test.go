@@ -80,7 +80,7 @@ func TestProjectConfiguration(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		data, err := env.Files.ReadFile(settings.AuthStore().String())
+		data, err := env.Files.ReadFile(settings.User().AuthStore().String())
 		require.NoError(t, err)
 		require.Equal(t, workspace+"\tproject\n", string(data))
 	})

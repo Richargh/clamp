@@ -3,6 +3,8 @@ package config
 import (
 	"testing"
 
+	"github.com/richargh/clamp/console/internal/settings"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +18,7 @@ func TestConfiguration(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Equal(t, "1.1.1.1", testee.ContainerDNS().String())
+		require.Equal(t, "1.1.1.1", testee.User().ContainerDNS().String())
 	})
 	t.Run("Should retain an explicit IPv6 DNS server", func(t *testing.T) {
 		// given
@@ -27,7 +29,7 @@ func TestConfiguration(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Equal(t, raw.ContainerDNS, testee.ContainerDNS().String())
+		require.Equal(t, raw.ContainerDNS, testee.User().ContainerDNS().String())
 	})
 	t.Run("Should reject an invalid container DNS server", func(t *testing.T) {
 		// given
@@ -77,7 +79,7 @@ func TestConfiguration(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Equal(t, raw.AuthStore, testee.AuthStore().String())
+		require.Equal(t, raw.AuthStore, testee.User().AuthStore().String())
 	})
 }
 
@@ -86,7 +88,7 @@ func TestTimezone(t *testing.T) {
 		t.Run("Should accept timezone "+raw, func(t *testing.T) {
 			// given
 			// when
-			testee, err := ParseTimezone(raw)
+			testee, err := settings.ParseTimezone(raw)
 
 			// then
 			require.NoError(t, err)

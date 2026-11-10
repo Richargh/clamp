@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"syscall"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/richargh/clamp/console/internal/config"
 	"github.com/richargh/clamp/console/internal/kernel/environment"
 	"github.com/richargh/clamp/console/internal/kernel/host"
+	"github.com/richargh/clamp/console/internal/settings"
 )
 
 func main() {
@@ -46,17 +46,9 @@ func startupConfig() (config.Config, error) {
 	if err != nil {
 		return config.Config{}, err
 	}
-	return config.Parse(config.Raw{
-		AssetsDir: assets, AuthStore: filepath.Join(directory, "clamp", "auth-projects.tsv"),
-		ContainerDNS:      os.Getenv("CLAMP_CONTAINER_DNS"),
-		ContainerTimezone: detectTimezone(),
-	})
-}
-
-func detectTimezone() string {
-	zone := host.Timezone()
-	if _, err := config.ParseTimezone(zone); err != nil {
-		return ""
+	user, err := settings.BootstrapUser(directory, os.Getenv("CLAMP_CONTAINER_DNS"), host.Timezone())
+	if err != nil {
+		return config.Config{}, err
 	}
-	return zone
+	return config.New(assets, user)
 }

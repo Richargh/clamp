@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+
+	"github.com/richargh/clamp/console/internal/settings"
 )
 
 var completeDockerfile = regexp.MustCompile(`(?m)^[\t ]*FROM[\t ]+`)
@@ -31,8 +33,12 @@ func (l *Runner) build(ctx context.Context, o Options, project projectIdentity) 
 }
 
 func (l *Runner) buildProjectImage(ctx context.Context, o Options, project projectIdentity) error {
-	dir := filepath.Join(project.workspace.String(), ".clamp")
-	path := filepath.Join(dir, "clamp.Dockerfile")
+	projectSettings, err := settings.ParseProject(project.workspace.String())
+	if err != nil {
+		return err
+	}
+	dir := projectSettings.Directory()
+	path := projectSettings.Dockerfile()
 	data, err := l.env.Files.ReadFile(path)
 	if err != nil {
 		return err
@@ -48,7 +54,7 @@ func (l *Runner) buildProjectImage(ctx context.Context, o Options, project proje
 		if err := l.env.Files.WriteFile(path, renderProjectDockerfile(project.toolImage, data), 0600); err != nil {
 			return err
 		}
-		ignore, err := l.env.Files.ReadFile(filepath.Join(dir, "clamp.Dockerfile.dockerignore"))
+		ignore, err := l.env.Files.ReadFile(projectSettings.Dockerignore())
 		if err != nil {
 			return err
 		}
@@ -65,7 +71,7 @@ func (l *Runner) buildProjectImage(ctx context.Context, o Options, project proje
 func (l *Runner) buildArgs(o Options) []string {
 	args := []string{"build"}
 	if o.Runtime.name == "container" {
-		args = append(args, "--dns", l.config.ContainerDNS().String())
+		args = append(args, "--dns", l.config.User().ContainerDNS().String())
 	}
 	if o.NoCache {
 		args = append(args, "--no-cache")

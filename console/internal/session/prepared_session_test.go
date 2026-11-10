@@ -26,7 +26,7 @@ func TestSessionPreparation(t *testing.T) {
 		// given
 		env, workspace, _ := newLaunchEnv(t)
 		settings := launchConfig(t)
-		path := settings.AuthStore().String()
+		path := settings.User().AuthStore().String()
 		require.NoError(t, env.Files.MkdirAll(filepath.Dir(path), 0700))
 		require.NoError(t, env.Files.WriteFile(path, []byte(workspace+"\tglobal\n"), 0600))
 		options := launchOptions(workspace)
@@ -59,7 +59,7 @@ func TestSessionPreparation(t *testing.T) {
 		_, err := testee.Prepare(launchOptions(workspace))
 		// then
 		require.NoError(t, err)
-		_, err = env.Files.Stat(settings.AuthStore().String())
+		_, err = env.Files.Stat(settings.User().AuthStore().String())
 		require.ErrorIs(t, err, filesystem.ErrNotExist)
 	})
 }
@@ -98,7 +98,7 @@ func TestPreparedSessionVolume(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, SharedVolume, testee.container.harnessStorage.Choice())
 		require.Equal(t, "claude-clamp", testee.container.harnessStorage.Volume().String())
-		saved, err := env.Files.ReadFile(settings.AuthStore().String())
+		saved, err := env.Files.ReadFile(settings.User().AuthStore().String())
 		require.NoError(t, err)
 		require.Equal(t, workspace+"\tglobal\n", string(saved))
 		run := requireContainerRun(t, processes.Calls)

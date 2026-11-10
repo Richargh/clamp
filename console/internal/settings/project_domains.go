@@ -1,4 +1,4 @@
-package session
+package settings
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/richargh/clamp/console/internal/kernel/filesystem"
 )
 
-func (l *Runner) setupAllowedDomains(domains string) error {
+func (l projectBootstrap) setupAllowedDomains(domains string) error {
 	if _, err := l.env.Files.Stat(domains); err == nil {
 		return nil
 	} else if !errors.Is(err, filesystem.ErrNotExist) {
@@ -17,7 +17,7 @@ func (l *Runner) setupAllowedDomains(domains string) error {
 	if err := l.env.Files.MkdirAll(domains, 0755); err != nil {
 		return err
 	}
-	source := filepath.Join(l.config.AssetsDir().String(), "clamp-shared", "allowed-domains.d")
+	source := filepath.Join(l.assets.String(), "clamp-shared", "allowed-domains.d")
 	if _, err := l.env.Files.Stat(source); err == nil {
 		if err := l.env.Files.CopyDirectory(source, domains); err != nil {
 			return err
