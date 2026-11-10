@@ -3,6 +3,7 @@ package hostproxy
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,6 +33,39 @@ func TestLegacyLaunchers(t *testing.T) {
 		var exit *exec.ExitError
 		require.ErrorAs(t, err, &exit)
 		require.Equal(t, 1, exit.ExitCode())
+	})
+}
+
+func TestHostProxyStartupEnvironment(t *testing.T) {
+	t.Run("Should expose proxy host and port variables to the agent", func(t *testing.T) {
+		// given
+		script, err := os.ReadFile("../../../startup-scripts/container-startup.sh")
+		require.NoError(t, err)
+		_, block, found := strings.Cut(string(script), "HARNESS_ENV=(\n")
+		require.True(t, found)
+		block, _, found = strings.Cut(block, "\n)")
+		require.True(t, found)
+		testee := exec.CommandContext(t.Context(), "bash", "-c", "HARNESS_ENV=(\n"+block+"\n)\nenv -i \"${HARNESS_ENV[@]}\"")
+		testee.Env = []string{
+			"PATH=" + os.Getenv("PATH"),
+			"CLAMP_CONTAINER_HOME=/home/dev",
+			"CLAMP_CONTAINER_USER=dev",
+			"CLAMP_HOST_PROXY_HOST=192.0.2.10",
+			"CLAMP_HOST_PROXY_PORT=18888",
+			"NO_PROXY=",
+		}
+
+		// when
+		output, err := testee.CombinedOutput()
+
+		// then
+		require.NoError(t, err, string(output))
+		variables := strings.Split(strings.TrimSpace(string(output)), "\n")
+		for _, protocol := range []string{"HTTP", "HTTPS"} {
+			require.Contains(t, variables, protocol+"_PROXY=http://192.0.2.10:18888")
+			require.Contains(t, variables, protocol+"_PROXY_HOST=192.0.2.10")
+			require.Contains(t, variables, protocol+"_PROXY_PORT=18888")
+		}
 	})
 }
 
