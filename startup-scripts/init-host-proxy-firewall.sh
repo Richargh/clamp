@@ -1,5 +1,6 @@
 #!/bin/bash
-# Permit outbound TCP only to the host proxy. No direct DNS or internet access.
+# Permit loopback traffic and outbound TCP to the host proxy only.
+# No direct external DNS or internet access.
 set -euo pipefail
 
 if [ -z "${CLAMP_HOST_PROXY_HOST:-}" ]; then
@@ -33,13 +34,15 @@ fi
 # exceptions: connections opened before this script must not bypass the rules.
 "$IPTABLES" -P OUTPUT DROP
 "$IPTABLES" -F OUTPUT
+"$IPTABLES" -A OUTPUT -o lo -j ACCEPT
 if "$IP6TABLES" -L OUTPUT -n >/dev/null 2>&1; then
     "$IP6TABLES" -P OUTPUT DROP
     "$IP6TABLES" -F OUTPUT
+    "$IP6TABLES" -A OUTPUT -o lo -j ACCEPT
 else
     # Some guest kernels have no IPv6 firewall. Disable IPv6 or stop startup.
     sysctl -w net.ipv6.conf.all.disable_ipv6=1
     sysctl -w net.ipv6.conf.default.disable_ipv6=1
 fi
 "$IPTABLES" -A OUTPUT -p tcp -d "$CLAMP_HOST_PROXY_HOST" --dport "$CLAMP_HOST_PROXY_PORT" -j ACCEPT
-printf '[Clamp Firewall]\n  Outbound TCP: %s:%s only\n' "$CLAMP_HOST_PROXY_HOST" "$CLAMP_HOST_PROXY_PORT"
+printf '[Clamp Firewall]\n  Loopback: allowed\n  Outbound TCP: %s:%s only\n' "$CLAMP_HOST_PROXY_HOST" "$CLAMP_HOST_PROXY_PORT"
