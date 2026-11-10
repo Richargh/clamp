@@ -105,22 +105,22 @@ func TestHarnessStorage(t *testing.T) {
 		options := launchOptions(workspace)
 		options.PerProjectAuth = false
 		settings := launchConfig(t)
-		testee := New(env, settings)
+		selections := 0
+		selectHarnessVolume := func(selected Workspace) (HarnessVolumeChoice, error) {
+			require.Equal(t, workspace, selected.String())
+			selections++
+			return SharedVolume, nil
+		}
+		testee := Launch
 
 		// when
-		prepared, err := testee.Prepare(options)
-		require.NoError(t, err)
-		require.True(t, prepared.HasNoHarnessVolume())
-		require.NoError(t, prepared.SetHarnessVolume(SharedVolume))
-		first := prepared.Launch(t.Context())
-		restored, err := testee.Prepare(options)
-		require.NoError(t, err)
-		require.False(t, restored.HasNoHarnessVolume())
-		second := restored.Launch(t.Context())
+		first := testee(t.Context(), env, settings, options, selectHarnessVolume)
+		second := testee(t.Context(), env, settings, options, selectHarnessVolume)
 
 		// then
 		require.NoError(t, first)
 		require.NoError(t, second)
+		require.Equal(t, 1, selections)
 		data, err := env.Files.ReadFile(settings.User().AuthStore().String())
 		require.NoError(t, err)
 		require.Equal(t, workspace+"\tglobal\n", string(data))

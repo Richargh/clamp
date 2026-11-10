@@ -20,20 +20,10 @@ func newRunCommand(env environment.Env, settings config.Config) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			prepared, err := session.New(env, settings).Prepare(options)
-			if err != nil {
-				return err
+			selectHarnessVolume := func(workspace session.Workspace) (session.HarnessVolumeChoice, error) {
+				return promptHarnessStorage(env, workspace.String())
 			}
-			if prepared.HasNoHarnessVolume() {
-				storage, err := promptHarnessStorage(env, prepared.Workspace().String())
-				if err != nil {
-					return err
-				}
-				if err := prepared.SetHarnessVolume(storage); err != nil {
-					return err
-				}
-			}
-			return prepared.Launch(cmd.Context())
+			return session.Launch(cmd.Context(), env, settings, options, selectHarnessVolume)
 		},
 	}
 	input.bind(cmd)

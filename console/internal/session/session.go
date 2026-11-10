@@ -8,6 +8,7 @@ import (
 	"github.com/richargh/clamp/console/internal/config"
 	"github.com/richargh/clamp/console/internal/kernel/environment"
 	"github.com/richargh/clamp/console/internal/kernel/process"
+	"github.com/richargh/clamp/console/internal/settings"
 )
 
 type Runner struct {
@@ -19,45 +20,72 @@ func New(env environment.Env, settings config.Config) *Runner {
 	return &Runner{env: env, config: settings}
 }
 
-// Launch is the non-interactive entry point for sessions with a saved or explicit
-// volume choice. Interactive callers prepare a Session before launching it.
-func (l *Runner) Launch(ctx context.Context, o Options) error {
-	prepared, err := l.Prepare(o)
-	if err != nil {
-		return err
-	}
-	return prepared.Launch(ctx)
+// Launch starts a session. It calls selectHarnessVolume only when no saved or
+// explicit volume choice exists. A nil selector requires an existing choice.
+func Launch(ctx context.Context, env environment.Env, settings config.Config, o Options, selectHarnessVolume func(Workspace) (HarnessVolumeChoice, error)) error {
+	return New(env, settings).launch(ctx, o, selectHarnessVolume)
 }
 
-// Prepare resolves the session without building images or running processes.
-// A new project may still need a harness volume selection from the caller.
-func (l *Runner) Prepare(o Options) (*Session, error) {
+// Launch starts a session that already has a saved or explicit volume choice.
+func (l *Runner) Launch(ctx context.Context, o Options) error {
+	return l.launch(ctx, o, nil)
+}
+
+func (l *Runner) launch(ctx context.Context, o Options, selectHarnessVolume func(Workspace) (HarnessVolumeChoice, error)) error {
 	if o.Harness.name == "" || o.Runtime.name == "" {
-		return nil, fmt.Errorf("harness and runtime are required")
+		return fmt.Errorf("harness and runtime are required")
 	}
 	executable, err := l.env.Processes.LookPath(o.Runtime.name)
 	if err != nil {
-		return nil, fmt.Errorf("container runtime not found: %s: %w", o.Runtime.name, err)
+		return fmt.Errorf("container runtime not found: %s: %w", o.Runtime.name, err)
 	}
 	o.Runtime.executable = executable
 	workspace, err := l.resolveWorkspace(o.Folder)
 	if err != nil {
-		return nil, err
-	}
-	choice, err := l.loadHarnessStorage(workspace.String(), o.PerProjectAuth)
-	if err != nil {
-		return nil, err
+		return err
 	}
 	project := newProjectIdentity(o.Harness, workspace)
+	storage, err := l.selectStorage(project, o.PerProjectAuth, selectHarnessVolume)
+	if err != nil {
+		return err
+	}
 	container, err := newContainerSession(project, l.env.Clock.Now())
 	if err != nil {
-		return nil, err
+		return err
 	}
-	prepared := &Session{runner: l, options: o, project: project, container: container}
-	if err := prepared.SetHarnessVolume(choice); err != nil {
-		return nil, err
+	container.harnessStorage = storage
+	if err := l.rememberHarnessStorage(workspace.String(), storage.Choice()); err != nil {
+		return err
 	}
-	return prepared, nil
+	l.printConfig(o, storage.Choice())
+	projectSettings, err := settings.ParseProject(workspace.String())
+	if err != nil {
+		return err
+	}
+	if err := settings.BootstrapProject(l.env, projectSettings, l.config.AssetsDir()); err != nil {
+		return err
+	}
+	if err := l.build(ctx, o, project); err != nil {
+		return err
+	}
+	return l.run(ctx, o, container)
+}
+
+func (l *Runner) selectStorage(project projectIdentity, explicit bool, selectHarnessVolume func(Workspace) (HarnessVolumeChoice, error)) (HarnessVolume, error) {
+	choice, err := l.loadHarnessStorage(project.workspace.String(), explicit)
+	if err != nil {
+		return HarnessVolume{}, err
+	}
+	if choice == NoChoiceMade && selectHarnessVolume != nil {
+		choice, err = selectHarnessVolume(project.workspace)
+		if err != nil {
+			return HarnessVolume{}, err
+		}
+	}
+	if choice == NoChoiceMade {
+		return HarnessVolume{}, fmt.Errorf("harness storage selection is required for %s", project.workspace.String())
+	}
+	return resolveHarnessStorage(choice, project)
 }
 
 func (l *Runner) printConfig(o Options, choice HarnessVolumeChoice) {
