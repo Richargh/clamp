@@ -2,7 +2,7 @@
 FROM clamp-base
 
 # renovate: datasource=npm depName=@earendil-works/pi-coding-agent
-ARG PI_VERSION=1.4.0
+ARG PI_VERSION=1.5.2
 ARG CONTAINER_USER=dev
 
 ENV PI_SKIP_VERSION_CHECK=1 \
